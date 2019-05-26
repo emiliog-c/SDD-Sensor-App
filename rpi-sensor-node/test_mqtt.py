@@ -103,11 +103,12 @@ while True:
     payload = '{{"sensor":"1","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(pm_ts,temperature, humidity,int(pm25),int(pm10))
     try:
       myClient.publish("sensors/data", payload, 1)
-    except AWSIoTPythonSDK.exception.AWSIoTExceptions.publishTimeoutException:
+    except:
       print("Unable to publish payload, attempting to reconnect, 1st time")
+      time.sleep(15)
       try:
         myClient.publish("sensors/data", payload, 1)
-      except AWSIoTPythonSDK.exception.AWSIoTExceptions.publishTimeoutException:
+      except:
         print ("Unable to publish payload, attempting to reconnect, 2nd time")
         
         

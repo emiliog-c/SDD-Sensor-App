@@ -104,11 +104,11 @@ while True:
     try:
       myClient.publish("sensors/data", payload, 1)
     except AWSIoTPythonSDK.exception.AWSIoTExceptions.publishTimeoutException:
-      print ("Unable to publish payload, attempting to reconnect, 1st time")
-        try:
-          myClient.publish("sensors/data", payload, 1)
-        except AWSIoTPythonSDK.exception.AWSIoTExceptions.publishTimeoutException:
-          print ("Unable to publish payload, attempting to reconnect, 2nd time")
+      print("Unable to publish payload, attempting to reconnect, 1st time")
+      try:
+        myClient.publish("sensors/data", payload, 1)
+      except AWSIoTPythonSDK.exception.AWSIoTExceptions.publishTimeoutException:
+        print ("Unable to publish payload, attempting to reconnect, 2nd time")
         
         
    

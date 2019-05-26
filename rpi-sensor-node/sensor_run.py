@@ -7,29 +7,29 @@ import time
 import sys
 
 # Arguments  sensor_id host_name root_ca private_key cert_file
-sensor_id = sys.argv[0]
+sensor_id = sys.argv[1]
 
 # A random programmatic client ID.
 MQTT_CLIENT = "Sensor{:s}RPiZeroW".format(sensor_id)
 
 # The unique hostname that AWS IoT generated for 
 # this device.
-HOST_NAME = sys.argv[1] #"a3n039lf58a27m-ats.iot.ap-southeast-2.amazonaws.com"
+HOST_NAME = sys.argv[2] #"a3n039lf58a27m-ats.iot.ap-southeast-2.amazonaws.com"
 
 # The relative path to the correct root CA file for AWS IoT, 
 # that you have already saved onto this device.
 # ROOT_CA = "AmazonRootCA1.pem"
-ROOT_CA = sys.argv[2] #"/home/pi/root-CA.crt"
+ROOT_CA = sys.argv[3] #"/home/pi/root-CA.crt"
 
 # The relative path to your private key file that 
 # AWS IoT generated for this device, that you 
 # have already saved onto this device.
-PRIVATE_KEY = sys.argv[3] # "/home/pi/Sensor1.private.key"
+PRIVATE_KEY = sys.argv[4] # "/home/pi/Sensor1.private.key"
 
 # The relative path to your certificate file that 
 # AWS IoT generated for this device, that you 
 # have already saved onto this device.
-CERT_FILE = sys.argv[4] # "/home/pi/Sensor1.cert.pem"
+CERT_FILE = sys.argv[5] # "/home/pi/Sensor1.cert.pem"
 
 # A programmatic client handler name prefix.
 MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)

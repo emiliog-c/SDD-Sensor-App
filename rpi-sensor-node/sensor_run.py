@@ -51,7 +51,7 @@ myClient.configureCredentials(ROOT_CA, PRIVATE_KEY,
 myClient.configureConnectDisconnectTimeout(20)
 myClient.configureMQTTOperationTimeout(10)
 myClient.connect()
-myClient.publish("sensors/info", '{"sensor":{:s}, "info":"connected"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":"{:s}", "info":"connected"}'.format(sensor_id), 1)
 
 # Represents the GPIO21 pin on the Raspberry Pi.
 # channel = 21
@@ -63,9 +63,9 @@ myClient.publish("sensors/info", '{"sensor":{:s}, "info":"connected"}'.format(se
 # GPIO.setup(channel, GPIO.IN)
 
 # setup Honeywell sensor
-myClient.publish("sensors/info", '{"sensor":{:s}, "info":"initialising Honeywell sensor"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":"{:s}", "info":"initialising Honeywell sensor"}'.format(sensor_id), 1)
 hw = honeywell.Honeywell()
-myClient.publish("sensors/info", '{"sensor":{:s}, "info":"starting particulate measurements"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":"{:s}", "info":"starting particulate measurements"}'.format(sensor_id), 1)
 hw.start_measuring()
 
 while True:
@@ -85,7 +85,7 @@ while True:
   pm_ts, pm10, pm25 = str(hw.read()).split(",")
   print(humidity, temperature, pm_ts, pm25, pm10)
   if True:
-    payload = '{{"sensor":{:s},"timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10))
+    payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10))
     try:
       myClient.publish("sensors/data", payload, 1)
     except:

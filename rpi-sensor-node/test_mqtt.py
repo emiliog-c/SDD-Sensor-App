@@ -3,8 +3,8 @@ import Adafruit_DHT
 import honeywell
 import time
 
-# A random programmatic shadow client ID.
-SHADOW_CLIENT = "Sensor1RPiZeroW"
+# A random programmatic client ID.
+MQTT_CLIENT = "Sensor1RPiZeroW"
 
 # The unique hostname that AWS IoT generated for 
 # this device.
@@ -25,20 +25,20 @@ PRIVATE_KEY = "/home/pi/Sensor1.private.key"
 # have already saved onto this device.
 CERT_FILE = "/home/pi/Sensor1.cert.pem"
 
-# A programmatic shadow handler name prefix.
-SHADOW_HANDLER = "Sensor1RPi"
+# A programmatic client handler name prefix.
+MQTT_HANDLER = "Sensor1RPi"
 
-# Automatically called whenever the shadow is updated.
-def myShadowUpdateCallback(payload, responseStatus, token):
+# Automatically called whenever the client is updated.
+def myClientUpdateCallback(payload, responseStatus, token):
   print()
-  print('UPDATE: $aws/things/' + SHADOW_HANDLER +
-    '/shadow/update/#')
+  print('UPDATE: $aws/things/' + MQTT_HANDLER +
+    '/client/update/#')
   print("payload = " + payload)
   print("responseStatus = " + responseStatus)
   print("token = " + token)
 
-# Create, configure, and connect a shadow client.
-myClient = AWSIoTMQTTClient(SHADOW_CLIENT)
+# Create, configure, and connect to a client.
+myClient = AWSIoTMQTTClient(MQTT_CLIENT)
 myClient.configureEndpoint(HOST_NAME, 8883)
 myClient.configureCredentials(ROOT_CA, PRIVATE_KEY,
   CERT_FILE)
@@ -46,10 +46,6 @@ myClient.configureConnectDisconnectTimeout(20)
 myClient.configureMQTTOperationTimeout(10)
 myClient.connect()
 myClient.publish("sensors/info", '{"sensor":1, "info":"connected"}', 0)
-
-# Create a programmatic representation of the shadow.
-# myDeviceShadow = myShadowClient.createShadowHandlerWithName(
-#  SHADOW_HANDLER, True)
 
 # Represents the GPIO21 pin on the Raspberry Pi.
 # channel = 21
@@ -104,12 +100,9 @@ while True:
   pm_ts, pm10, pm25 = str(hw.read()).split(",")
   print(humidity, temperature, pm_ts, pm25, pm10)
   if True:
-     myClient.publish("sensors/data",
-       '{{"sensor":"1","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(pm_ts,temperature, humidity,int(pm25),int(pm10)), 0)
-      # myShadowUpdateCallback, 5)
-     #myClient.publish("Sensor1/data",
-     #  '{{"state":{{"reported":{{"humidity":{:f}}}}}}}'.format(humidity), 0)
-      # myShadowUpdateCallback, 5)
+    payload = '{{"sensor":"1","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(pm_ts,temperature, humidity,int(pm25),int(pm10))
+    myClient.publishAsync("sensors/data", payload, 1, ackCallback = myClientUpdateCallback)
+   
 
   # Wait for this test value to be added.
   time.sleep(15)

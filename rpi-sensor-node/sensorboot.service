@@ -3,7 +3,7 @@ Description=Start sensor on boot
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 -u sensor_run.py 1 a3n039lf58a27m-ats.iot.ap-southeast-2.amazonaws.com /home/pi/root-CA.crt home/pi/Sensor1.private.key /home/pi/Sensor1.cert.pem
+ExecStart=/usr/bin/python3 -u sensor_run.py 1 a3n039lf58a27m-ats.iot.ap-southeast-2.amazonaws.com /home/pi/root-CA.crt /home/pi/Sensor1.private.key /home/pi/Sensor1.cert.pem
 WorkingDirectory=/home/pi/SDD-Sensor-App/rpi-sensor-node
 StandardOutput=inherit
 StandardError=inherit

@@ -101,7 +101,7 @@ while True:
   print(humidity, temperature, pm_ts, pm25, pm10)
   if True:
     payload = '{{"sensor":"1","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(pm_ts,temperature, humidity,int(pm25),int(pm10))
-    myClient.publishAsync("sensors/data", payload, 1, ackCallback = myClientUpdateCallback)
+    myClient.publish("sensors/data", payload, 1)
    
 
   # Wait for this test value to be added.

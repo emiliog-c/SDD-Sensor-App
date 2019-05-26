@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import Adafruit_DHT
 import honeywell
@@ -8,7 +10,7 @@ import sys
 sensor_id = sys.argv[0]
 
 # A random programmatic client ID.
-MQTT_CLIENT = "Sensor{:d}RPiZeroW".format(sensor_id)
+MQTT_CLIENT = "Sensor{:s}RPiZeroW".format(sensor_id)
 
 # The unique hostname that AWS IoT generated for 
 # this device.
@@ -30,7 +32,7 @@ PRIVATE_KEY = sys.argv[3] # "/home/pi/Sensor1.private.key"
 CERT_FILE = sys.argv[4] # "/home/pi/Sensor1.cert.pem"
 
 # A programmatic client handler name prefix.
-MQTT_HANDLER = "Sensor{:d}RPi".format(sensor_id)
+MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)
 
 # Automatically called whenever the client is updated.
 def myClientUpdateCallback(payload, responseStatus, token):
@@ -49,7 +51,7 @@ myClient.configureCredentials(ROOT_CA, PRIVATE_KEY,
 myClient.configureConnectDisconnectTimeout(20)
 myClient.configureMQTTOperationTimeout(10)
 myClient.connect()
-myClient.publish("sensors/info", '{"sensor":{:d}, "info":"connected"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":{:s}, "info":"connected"}'.format(sensor_id), 1)
 
 # Represents the GPIO21 pin on the Raspberry Pi.
 # channel = 21
@@ -61,29 +63,29 @@ myClient.publish("sensors/info", '{"sensor":{:d}, "info":"connected"}'.format(se
 # GPIO.setup(channel, GPIO.IN)
 
 # setup Honeywell sensor
-myClient.publish("sensors/info", '{"sensor":{:d}, "info":"initialising Honeywell sensor"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":{:s}, "info":"initialising Honeywell sensor"}'.format(sensor_id), 1)
 hw = honeywell.Honeywell()
-myClient.publish("sensors/info", '{"sensor":{:d}, "info":"starting particulate measurements"}'.format(sensor_id), 1)
+myClient.publish("sensors/info", '{"sensor":{:s}, "info":"starting particulate measurements"}'.format(sensor_id), 1)
 hw.start_measuring()
 
 while True:
   humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
   if humidity is None or temperature is None:
-    myClient.publish("sensors/info", '{"sensor":{:d}, "info":"DHT22 reading failed"}'.format(sensor_id), 1)
+    myClient.publish("sensors/info", '{"sensor":{:s}, "info":"DHT22 reading failed"}'.format(sensor_id), 1)
     # re-try after a few seconds
     time.sleep(5)
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
     if humidity is None or temperature is None:
-      myClient.publish("sensors/info", '{"sensor":{:d}, "info":"DHT22 reading also failed on 1st retry"}'.format(sensor_id), 1)
+      myClient.publish("sensors/info", '{"sensor":{:s}, "info":"DHT22 reading also failed on 1st retry"}'.format(sensor_id), 1)
       # re-try after a few seconds
       time.sleep(5)
       humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
       if humidity is None or temperature is None:
-        myClient.publish("sensors/info", '{"sensor":{:d}, "info":"DHT22 reading failed again on 2nd retry"}'.format(sensor_id), 1)
+        myClient.publish("sensors/info", '{"sensor":{:s}, "info":"DHT22 reading failed again on 2nd retry"}'.format(sensor_id), 1)
   pm_ts, pm10, pm25 = str(hw.read()).split(",")
   print(humidity, temperature, pm_ts, pm25, pm10)
   if True:
-    payload = '{{"sensor":{:d},"timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10))
+    payload = '{{"sensor":{:s},"timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10))
     try:
       myClient.publish("sensors/data", payload, 1)
     except:

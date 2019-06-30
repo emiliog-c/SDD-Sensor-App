@@ -2,12 +2,22 @@
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import Adafruit_DHT
-import honeywell
+import Adafruit_BMP.BMP085 as BMP085
 import time
 import sys
 
 # Arguments  sensor_id host_name root_ca private_key cert_file
 sensor_id = sys.argv[1]
+
+# Sensor 4 uses a Nova SDS-011 sensor, all other nodes use Honeywell sensors
+if sensor_id == '4':
+  from sds011 import SDS011
+  DEFAULT_SERIAL_PORT = "/dev/serial0" # Serial port to use if no other specified
+  DEFAULT_BAUD_RATE = 9600 # Serial baud rate to use if no other specified
+  DEFAULT_SERIAL_TIMEOUT = 2 # Serial timeout to use if not specified
+  DEFAULT_READ_TIMEOUT = 1 #How long to sit looking for the correct character sequence.
+else:
+  import honeywell
 
 # A random programmatic client ID.
 MQTT_CLIENT = "Sensor{:s}RPiZeroW".format(sensor_id)
@@ -62,14 +72,24 @@ myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"connected"}}'.forma
 # Receive input signals through the pin.
 # GPIO.setup(channel, GPIO.IN)
 
-# setup Honeywell sensor
-myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising Honeywell sensor"}}'.format(sensor_id), 1)
-hw = honeywell.Honeywell()
-myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"starting particulate measurements"}}'.format(sensor_id), 1)
-hw.start_measuring()
+# Sensor 4 uses a Nova SDS-011 sensor, all others use Honeywell sensors
+if sensor_id == '4':
+  # setup Nova SDS-011 sensor
+  sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
+else:
+  # setup Honeywell sensor
+  myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising Honeywell sensor"}}'.format(sensor_id), 1)
+  hw = honeywell.Honeywell()
+  myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"starting particulate measurements"}}'.format(sensor_id), 1)
+  hw.start_measuring()
+
+# setup BMP180 temp and air pressure sensor
+myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising BMP180 sensor"}}'.format(sensor_id), 1)
+bmp = BMP085.BMP085(mode=BMP085.BMP085_ULTRAHIGHRES)
 
 while True:
   humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
+  # print(humidity, temperature)
   if humidity is None or temperature is None:
     myClient.publish("sensors/info", '{{"sensor":{:s}, "info":"DHT22 reading failed"}}'.format(sensor_id), 1)
     # re-try after a few seconds
@@ -82,18 +102,24 @@ while True:
       humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
       if humidity is None or temperature is None:
         myClient.publish("sensors/info", '{{"sensor":{:s}, "info":"DHT22 reading failed again on 2nd retry"}}'.format(sensor_id), 1)
-  pm_ts, pm10, pm25 = str(hw.read()).split(",")
-  print(humidity, temperature, pm_ts, pm25, pm10)
+  # read the BMP180 sensor
+  bmp180_temperature = bmp.read_temperature()
+  bmp180_airpressure = bmp.read_pressure()
+
+  if sensor_id == '4':
+    # read the Nova SDS-011 sensor
+    sds_results = sds.query()
+  else:
+    # read the Honeywell sensor
+    pm_ts, pm10, pm25 = str(hw.read()).split(",")
+
+  print(humidity, temperature, pm_ts, pm25, pm10, bmp180_temperature, bmp180_airpressure)
   if True:
-    payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10))
+    payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:d},"pm10":{:d},"bmp180_temperature":{:f},"bmp180_airpressure":{:f}}}'.format(sensor_id, pm_ts,temperature, humidity,int(pm25),int(pm10), bmp180_temperature, bmp180_airpressure)
     try:
       myClient.publish("sensors/data", payload, 1)
     except:
       print("Unable to publish payload, will try again next round")
-     
-        
-        
-   
 
   # Wait for this test value to be added.
   time.sleep(15)

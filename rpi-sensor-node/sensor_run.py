@@ -4,20 +4,11 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import Adafruit_DHT
 import Adafruit_BMP.BMP085 as BMP085
 import time
+import datetime
 import sys
 
 # Arguments  sensor_id host_name root_ca private_key cert_file
 sensor_id = sys.argv[1]
-
-# Sensor 4 uses a Nova SDS-011 sensor, all other nodes use Honeywell sensors
-if sensor_id == '4':
-  from sds011 import SDS011
-  DEFAULT_SERIAL_PORT = "/dev/serial0" # Serial port to use if no other specified
-  DEFAULT_BAUD_RATE = 9600 # Serial baud rate to use if no other specified
-  DEFAULT_SERIAL_TIMEOUT = 2 # Serial timeout to use if not specified
-  DEFAULT_READ_TIMEOUT = 1 #How long to sit looking for the correct character sequence.
-else:
-  import honeywell
 
 # A random programmatic client ID.
 MQTT_CLIENT = "Sensor{:s}RPiZeroW".format(sensor_id)
@@ -40,6 +31,20 @@ PRIVATE_KEY = sys.argv[4] # "/home/pi/Sensor1.private.key"
 # AWS IoT generated for this device, that you 
 # have already saved onto this device.
 CERT_FILE = sys.argv[5] # "/home/pi/Sensor1.cert.pem"
+
+# The type of particulate sensor used. Valid values are 
+# Honeywell or SDS011 (case-sensitive)
+particulate_sensor_type = sys.argv[6]
+
+# Import the right library for the particulate sensor type
+if particulate_sensor_type == 'SDS011':
+  from sds011 import SDS011
+  DEFAULT_SERIAL_PORT = "/dev/serial0" # Serial port to use if no other specified
+  DEFAULT_BAUD_RATE = 9600 # Serial baud rate to use if no other specified
+  DEFAULT_SERIAL_TIMEOUT = 2 # Serial timeout to use if not specified
+  DEFAULT_READ_TIMEOUT = 1 # How long to sit looking for the correct character sequence.
+elif particulate_sensor_type == 'Honeywell':
+  import honeywell
 
 # A programmatic client handler name prefix.
 MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)
@@ -72,16 +77,19 @@ myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"connected"}}'.forma
 # Receive input signals through the pin.
 # GPIO.setup(channel, GPIO.IN)
 
-# Sensor 4 uses a Nova SDS-011 sensor, all others use Honeywell sensors
-if sensor_id == '4':
+# set up the particulate sensors
+if particulate_sensor_type == 'SDS011':
   # setup Nova SDS-011 sensor
+  myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id), 1)
   sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
-else:
+elif particulate_sensor_type == 'Honeywell':
   # setup Honeywell sensor
   myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising Honeywell sensor"}}'.format(sensor_id), 1)
   hw = honeywell.Honeywell()
   myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"starting particulate measurements"}}'.format(sensor_id), 1)
   hw.start_measuring()
+else:
+  myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"no particulate sensor was initialised"}}'.format(sensor_id), 1)
 
 # setup BMP180 temp and air pressure sensor
 myClient.publish("sensors/info", '{{"sensor":"{:s}", "info":"initialising BMP180 sensor"}}'.format(sensor_id), 1)
@@ -106,10 +114,11 @@ while True:
   bmp180_temperature = bmp.read_temperature()
   bmp180_airpressure = bmp.read_pressure()
 
-  if sensor_id == '4':
+  if particulate_sensor_type == 'SDS011':
     # read the Nova SDS-011 sensor
-    sds_results = sds.query()
-  else:
+    pm10, pm25 = str(sds.query())
+    pm_ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+  elif particulate_sensor_type == 'Honeywell':
     # read the Honeywell sensor
     pm_ts, pm10, pm25 = str(hw.read()).split(",")
 

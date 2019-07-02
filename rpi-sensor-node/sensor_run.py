@@ -116,7 +116,8 @@ while True:
 
   if particulate_sensor_type == 'SDS011':
     # read the Nova SDS-011 sensor
-    pm10, pm25 = str(sds.query())
+    sds_results = sds.query()
+    pm10, pm25 = (str(round(sds_results[0])), str(round(sds_results[1])))
     pm_ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
   elif particulate_sensor_type == 'Honeywell':
     # read the Honeywell sensor

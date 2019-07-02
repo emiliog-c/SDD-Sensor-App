@@ -174,7 +174,7 @@ while True:
     # finally read the particulate sensor device, using the correct driver for that device 
     if particulate_sensor_type == 'SDS011':
       # read the Nova SDS-011 sensor
-      pm10, pm25 = str(sds.query())
+      pm10, pm25 = sds.query()
     elif particulate_sensor_type == 'Honeywell':
       # read the Honeywell sensor, note that it also returns a timestamp but in UTC (Greenwich) time which we don't use
       pm_ts_utc, pm10, pm25 = str(hw.read()).split(",")

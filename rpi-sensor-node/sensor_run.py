@@ -13,26 +13,25 @@ sensor_id = sys.argv[1]
 # A random programmatic client ID.
 MQTT_CLIENT = "Sensor{:s}RPiZeroW".format(sensor_id)
 
-# The unique hostname that AWS IoT generated for 
-# this device.
+# The unique hostname that AWS IoT generated for this device.
 HOST_NAME = sys.argv[2] #"a3n039lf58a27m-ats.iot.ap-southeast-2.amazonaws.com"
 
-# The relative path to the correct root CA file for AWS IoT, 
+# The relative path to the correct root CA file for AWS IoT,
 # that you have already saved onto this device.
 # ROOT_CA = "AmazonRootCA1.pem"
 ROOT_CA = sys.argv[3] #"/home/pi/root-CA.crt"
 
-# The relative path to your private key file that 
-# AWS IoT generated for this device, that you 
+# The relative path to your private key file that
+# AWS IoT generated for this device, that you
 # have already saved onto this device.
 PRIVATE_KEY = sys.argv[4] # "/home/pi/Sensor1.private.key"
 
-# The relative path to your certificate file that 
-# AWS IoT generated for this device, that you 
+# The relative path to your certificate file that
+# AWS IoT generated for this device, that you
 # have already saved onto this device.
 CERT_FILE = sys.argv[5] # "/home/pi/Sensor1.cert.pem"
 
-# The type of particulate sensor used. Valid values are 
+# The type of particulate sensor used. Valid values are
 # Honeywell or SDS011 (case-sensitive)
 particulate_sensor_type = sys.argv[6]
 
@@ -44,23 +43,23 @@ def get_local_timestamp():
 
 def trimmedMean(lst, numberToTrim=3):
   # first sort the list passed to this function, but it may contain Nones and a mixture of
-  # integers and floats, which cause the sort() function to fail. So instead use this 
+  # integers and floats, which cause the sort() function to fail. So instead use this
   # sorted list containing None trick from https://stackoverflow.com/questions/18411560/python-sort-list-with-none-at-the-end
   sortedLst = sorted(lst, key=lambda x: float('inf') if x is None else float(x))
   # trim it by slicing off number_to_trim elements from each end
   trimmedLst = sortedLst[numberToTrim:-numberToTrim]
   # now get the average and return it
-  return(sum(trimmedLst) / len(trimmedLst))
+  return( sum(trimmedLst) / len(trimmedLst) )
 
 # Import the right library for the particulate sensor type
-if particulate_sensor_type == 'SDS011':
+if particulate_sensor_type == 'Honeywell':
+  import honeywell
+elif particulate_sensor_type == 'SDS011':
   from sds011 import SDS011
   DEFAULT_SERIAL_PORT = "/dev/serial0" # Serial port to use if no other specified
   DEFAULT_BAUD_RATE = 9600 # Serial baud rate to use if no other specified
   DEFAULT_SERIAL_TIMEOUT = 2 # Serial timeout to use if not specified
   DEFAULT_READ_TIMEOUT = 1 # How long to sit looking for the correct character sequence.
-elif particulate_sensor_type == 'Honeywell':
-  import honeywell
 
 # A programmatic client handler name prefix.
 MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)
@@ -77,12 +76,13 @@ def myClientUpdateCallback(payload, responseStatus, token):
 # Create, configure, and connect to a client.
 myClient = AWSIoTMQTTClient(MQTT_CLIENT)
 myClient.configureEndpoint(HOST_NAME, 8883)
-myClient.configureCredentials(ROOT_CA, PRIVATE_KEY,
-  CERT_FILE)
+myClient.configureCredentials(ROOT_CA, PRIVATE_KEY, CERT_FILE)
 myClient.configureConnectDisconnectTimeout(20)
 myClient.configureMQTTOperationTimeout(10)
 myClient.connect()
-myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"connected"}}'.format(sensor_id,get_local_timestamp()), 1)
+time.sleep(10)
+myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client connected"}}'.format(sensor_id,get_local_timestamp()), 1)
+time.sleep(10)
 
 # Represents the GPIO21 pin on the Raspberry Pi.
 # channel = 21
@@ -97,18 +97,23 @@ myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"c
 if particulate_sensor_type == 'SDS011':
   # setup Nova SDS-011 sensor
   myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(10)
   sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
 elif particulate_sensor_type == 'Honeywell':
   # setup Honeywell sensor
   myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Honeywell sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(10)
   hw = honeywell.Honeywell()
   myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"starting particulate measurements"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(10)
   hw.start_measuring()
 else:
   myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"no particulate sensor was initialised"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(10)
 
 # setup BMP180 temp and air pressure sensor
 myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+time.sleep(10)
 bmp = BMP085.BMP085(mode=BMP085.BMP085_ULTRAHIGHRES) # ultra-high res mode seems to work fine
 
 # main loop forever
@@ -152,6 +157,7 @@ while True:
         if humidity is None or temperature is None:
           # log a message to the sensors/info MQTT topic
           myClient.publish("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"DHT22 reading failed again on 2nd retry"}}'.format(sensor_id, get_local_timestamp()), 1)
+          time.sleep(10)
           # if still an error, then the value will be None, but it should be eliminated by the trimmed means procedure
     # add the readings to the lists
     humidityReadings.append(float(humidity))
@@ -175,6 +181,7 @@ while True:
     else:
       # The particulate device type parameter on the command line must not be correct, so log it
       myClient.publish("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"particulate device type parameter incorrect!"}}'.format(sensor_id, get_local_timestamp()), 1)
+      time.sleep(600)
     # add the readings to the lists
     pm10Readings.append(float(pm10))
     pm25Readings.append(float(pm25))

@@ -1,0 +1,14 @@
+[Unit]
+Description=Start sensor on boot
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u sensor_run.py 3 a19nuo7ml0j5az-ats.iot.ap-southeast-2.amazonaws.com /home/pi/root-CA.crt /home/pi/Sensor3.private.key /home/pi/Sensor3.cert.pem Honeywell
+WorkingDirectory=/home/pi/SDD-Sensor-App/rpi-sensor-node
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

@@ -114,7 +114,7 @@ time.sleep(10)
 # send a message to the sensors/info topic data stream saying that this sensor node
 # has connected. The payload of the message is formatted as JSON with values for
 # the sensor ID, the current date and time, and an information message as text
-myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client connected"}}'.format(sensor_id,get_local_timestamp()), 1)
+myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client connected"}}'.format(sensor_id,get_local_timestamp()), 0)
 time.sleep(10)
 
 ##################################################
@@ -127,12 +127,12 @@ if particulate_sensor_type == 'Honeywell':
   import honeywell
   # set up Honeywell sensor
   # send an info message saying it is being initialised
-  myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Honeywell sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Honeywell sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
   time.sleep(10)
   # create an instance of the Honeywell driver class
   hw = honeywell.Honeywell()
   # the Honeywell sensor also has to be told to start taking measurements
-  myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"starting Honeywell particulate measurements"}}'.format(sensor_id,get_local_timestamp()), 1)
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"starting Honeywell particulate measurements"}}'.format(sensor_id,get_local_timestamp()), 0)
   time.sleep(10)
   hw.start_measuring()
 elif particulate_sensor_type == 'SDS011':
@@ -144,7 +144,7 @@ elif particulate_sensor_type == 'SDS011':
   DEFAULT_READ_TIMEOUT = 1 # How long to sit looking for the correct character sequence.
   # set up Nova SDS-011 sensor
   # send an info message saying it is being initialised
-  myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
   time.sleep(10)
   # create an instance of the SDS011 driver class
   sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
@@ -153,15 +153,15 @@ else:
   # command line, so might as well just exit, but sleep for 10 minutes first because
   # this program will automatically be restarted and the same error will happen until
   # it is fixed. A 10 minute wait stops too many error info messages being sent. 
-  myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"invalid particulate sensor type, shutting down"}}'.format(sensor_id,get_local_timestamp()), 1)
-  time.sleep(10)
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"invalid particulate sensor type, shutting down"}}'.format(sensor_id,get_local_timestamp()), 0)
+  time.sleep(600)
   sys.exit(1)
 
 ##################################################
 # set up BMP180 temp and air pressure sensor
 ##################################################
 
-myClient.publish("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
 time.sleep(10)
 # ultra-high res mode seems to work fine
 bmp = BMP085.BMP085(mode=BMP085.BMP085_ULTRAHIGHRES) 
@@ -200,7 +200,7 @@ while True:
     if humidity is None or temperature is None:
       for rereadTry in range(1,6):
         # log a message to the sensors/info MQTT topic
-        myClient.publish("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"DHT22 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 1)
+        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"DHT22 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 0)
         # re-try after a few seconds
         time.sleep(10)
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
@@ -220,7 +220,7 @@ while True:
     if bmp180_temperature is None or bmp180_airpressure is None:
       for rereadTry in range(1,6):
         # log a message to the sensors/info MQTT topic
-        myClient.publish("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"BMP180 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 1)
+        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"BMP180 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 0)
         # re-try after a few seconds
         time.sleep(10)
         bmp180_temperature = bmp.read_temperature()
@@ -243,7 +243,7 @@ while True:
       pm_ts_utc, pm10, pm25 = str(hw.read()).split(",")
     else:
       # The particulate device type parameter on the command line must not be correct, so log it
-      myClient.publish("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"particulate device type parameter incorrect!"}}'.format(sensor_id, get_local_timestamp()), 1)
+      myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"particulate device type parameter incorrect!"}}'.format(sensor_id, get_local_timestamp()), 0)
       # sleep for 10 minutes since this error will keep happening until it is fixed
       time.sleep(600)
     # add the readings to the lists
@@ -265,7 +265,7 @@ while True:
   print(get_local_timestamp(), meanHumidity, meanTemperature, meanPM25, meanPM10, meanBmp180Temperature, meanAirpressure)
   # assemble all these values into a JSON data payload string
   payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:f},"pm10":{:f},"bmp180_temperature":{:f},"bmp180_airpressure":{:f}}}'.format(sensor_id, get_local_timestamp(),meanTemperature, meanHumidity,meanPM25,meanPM10,meanBmp180Temperature,meanAirpressure)
-  if myClient.publish("sensors/data", payload, 1):
+  if myClient.publishAsync("sensors/data", payload, 0):
     print("Data payload message sent")
   else:
     print("Unable to publish payload, will try again next round")

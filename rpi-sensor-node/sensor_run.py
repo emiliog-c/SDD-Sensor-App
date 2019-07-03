@@ -267,7 +267,7 @@ while True:
   payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:f},"pm10":{:f},"bmp180_temperature":{:f},"bmp180_airpressure":{:f}}}'.format(sensor_id, get_local_timestamp(),meanTemperature, meanHumidity,meanPM25,meanPM10,meanBmp180Temperature,meanAirpressure)
   if myClient.publish("sensors/data", payload, 1):
     print("Data payload message sent")
-  except:
+  else:
     print("Unable to publish payload, will try again next round")
 
   # sleep for a few seconds before starting all over again

@@ -246,7 +246,7 @@ while True:
   mainLoopCounter += 1
   print("Main loop number {:d}".format(mainLoopCounter))
 
-  # the idea is to take 20 readings at 15 second intervals from each sensor type and store the results
+  # the idea is to take 20 readings at 10 second intervals from each sensor type and store the results
   # for each sensor type in a list, and then sort that list of values and discard the lowest three and highest
   # three readings, then calculate the average of the remaining readings. This is called a trimmed mean.
   # The trimmedMean() function defined above does this. This should get rid of most erroneous

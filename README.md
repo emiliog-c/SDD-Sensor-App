@@ -133,6 +133,15 @@ Create a role in the action
 The RPi node connects to the AWS IoT Services using the MQTT protocol (https://en.wikipedia.org/wiki/MQTT). MQTT is a protocol specifically designed for sending and recieving messages to and from Internet of things devices to a central server. It works on a publish and subscribe model, so to publish amessage, you have to specifically publish to the topic, and if you want to recieve a message, you have to subscribe to the topic. For simplicities sake, the node only publishes to two topics. Each node connects to the AWS MQTT server, the ode collects readings from the sensors attached to it, once it has looped 20 times, it will take an average and packages it into a JSON string and publishes it to the sensor.data topic on the AWS server. the AWS IoT MQTT library handles the message in the background, sending it directly to the server, automatically queuing messages if the internet goes down.WHen the topics recieves the data from the nodes, it applies the rules that were given to the topics and inserts the JSON data into the DynamoDB tables. 
 
 
+Website setup
+From your cmd, type the command pip3 install #
+# = boto3
+    dynamodb-json
+    pandas
+    dash 
+    
+
+
 
 
     

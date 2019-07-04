@@ -33,6 +33,7 @@ import sys
 # AWS root_ca filename
 # AWS IoT private_key filename
 # AWS IoT cert_file
+# dust sensor type
 
 # sensor ID to identify this sensor node
 sensor_id = sys.argv[1]

@@ -32,7 +32,7 @@ import sys
 # AWS IoT host_name
 # AWS root_ca filename
 # AWS IoT private_key filename
-# AWS IoT cert_file 
+# AWS IoT cert_file
 
 # sensor ID to identify this sensor node
 sensor_id = sys.argv[1]
@@ -63,6 +63,9 @@ CERT_FILE = sys.argv[5]
 # Honeywell or SDS011 (case-sensitive)
 particulate_sensor_type = sys.argv[6]
 
+# A programmatic client handler name prefix required by the AWS IoT MQTT client 
+MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)
+
 ##################################################
 # define some functions we need later
 ##################################################
@@ -83,10 +86,7 @@ def trimmedMean(valuesList, numberToTrim=3):
   # trim it by slicing off number_to_trim elements from each end
   trimmedLst = sortedLst[numberToTrim:-numberToTrim]
   # now get the average and return it
-  return( sum(trimmedLst) / len(trimmedLst) )
-
-# A programmatic client handler name prefix required by the AWS IoT MQTT client 
-MQTT_HANDLER = "Sensor{:s}RPi".format(sensor_id)
+  return(sum(trimmedLst) / len(trimmedLst))
 
 ##################################################
 # AWS IoT MQTT client set-up and connection
@@ -99,23 +99,48 @@ myClient = AWSIoTMQTTClient(MQTT_CLIENT)
 # set various values (described in setup section above)
 myClient.configureEndpoint(HOST_NAME, 8883)
 myClient.configureCredentials(ROOT_CA, PRIVATE_KEY, CERT_FILE)
-myClient.configureConnectDisconnectTimeout(20)
-myClient.configureMQTTOperationTimeout(20)
+# keep trying to connect for 60 seconds
+myClient.configureConnectDisconnectTimeout(60)
+# keep trying to send a message for 60 seconds
+myClient.configureMQTTOperationTimeout(60)
+# recommended setings for automatic reconnect
 myClient.configureAutoReconnectBackoffTime(1, 128, 20)
-myClient.configureOfflinePublishQueueing(20, AWSIoTPyMQTT.DROP_OLDEST)
+# number of messages to keep in the queue to be sent if MQTT client is offline
+myClient.configureOfflinePublishQueueing(500, AWSIoTPyMQTT.DROP_OLDEST)
+# how fast to draing the queue of stored messages when MQTT clinet reconnects
 myClient.configureDrainingFrequency(1)
+# define a function to be called when the MQTT client goes online
+def myOnOnlineCallback():
+  # print a message to the console
+  print("MQTT client connected and online")
+  # also send a MQTT message to the sensors/info topic
+  # The payload of the message is formatted as JSON with values for
+  # the sensor ID, the current date and time, and an information message as text
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client online"}}'.format(sensor_id,get_local_timestamp()),1)
+  time.sleep(10)
+# Register the function defined above to be called when the MQTT  goes online
+myClient.onOnline = myOnOnlineCallback
+def myOnOfflineCallback():
+  # print a message to the console
+  print("MQTT client disconnected and offline")
+  # also send a MQTT message to the sensors/info topic
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client offline"}}'.format(sensor_id,get_local_timestamp()),1)
+  time.sleep(10)
+# Register the function defined above to be called when the MQTT  goes online
+myClient.onOffline = myOnOfflineCallback
 # tell the client to connect with AWS
-# use 2400 seconds for the keep-alive which is much longer than the 
+# use 2400 seconds for the keep-alive which is much longer than the
 # time between data sends, so the connection doesn't drop between
 # each data send (publish)
-myClient.connect(2400)
+myClient.connectAsync(keepAliveIntervalSecond=2400)
 # seems to need a few seconds before the connection is ready to use
 time.sleep(10)
-# send a message to the sensors/info topic data stream saying that this sensor node
-# has connected. The payload of the message is formatted as JSON with values for
-# the sensor ID, the current date and time, and an information message as text
-myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"MQTT client connected"}}'.format(sensor_id,get_local_timestamp()), 0)
-time.sleep(10)
+
+# define a message publish acknowledgement callback function,
+# called automatically when an acknowledgement of successful message
+# publication is received when quality of service QoS is 1 (which requests ACKs)
+def myPubackCallback(mid):
+  print("Message ID {:d} sent and acknowledged".format(mid))
 
 ##################################################
 # set up particulate sensor device
@@ -123,18 +148,35 @@ time.sleep(10)
 
 # import the right library for the particulate sensor type for this node
 if particulate_sensor_type == 'Honeywell':
-  # the Honeywell driver already has serial port values set as required 
+  # the Honeywell driver already has serial port values set as required
   import honeywell
-  # set up Honeywell sensor
-  # send an info message saying it is being initialised
-  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Honeywell sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
-  time.sleep(10)
-  # create an instance of the Honeywell driver class
-  hw = honeywell.Honeywell()
+  # create an instance of the Honeywell driver class, this can sometimes fail
+  # so log the failures
+  try:
+    hw = honeywell.Honeywell()
+    print("Honeywell sensor initialised")
+    # also send info message saying it is initialised
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialised Honeywell sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(10)
+  except:
+    print("Honeywell sensor failed to initialise - bailing!")
+    # also send info message saying it failed
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"Honeywell sensor failed to initialise"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(30)
+    # exit the program so it is automatically restarted to try again
+    sys.exit(1)
   # the Honeywell sensor also has to be told to start taking measurements
-  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"starting Honeywell particulate measurements"}}'.format(sensor_id,get_local_timestamp()), 0)
-  time.sleep(10)
-  hw.start_measuring()
+  try:
+    hw.start_measuring()
+    print("Honeywell sensor started measuring")
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"Honeywell sensor started measuring"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(10)
+  except:
+    print("Honeywell sensor failed to start measuring - bailing!")
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"Honeywell sensor failed to start measuring"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(30)
+    # bail!
+    sys.exit(1)
 elif particulate_sensor_type == 'SDS011':
   from sds011 import SDS011
   # the SDS-011 driver needs various serial port values to be set as constants
@@ -144,16 +186,26 @@ elif particulate_sensor_type == 'SDS011':
   DEFAULT_READ_TIMEOUT = 1 # How long to sit looking for the correct character sequence.
   # set up Nova SDS-011 sensor
   # send an info message saying it is being initialised
-  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
   time.sleep(10)
-  # create an instance of the SDS011 driver class
-  sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
+  # create an instance of the SDS011 driver class, this can also fail, if so, bail out of program  so it restarts
+  try:
+    sds = SDS011(DEFAULT_SERIAL_PORT, use_query_mode=True)
+    print("Nova SDS-011 sensor initialised")
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialised Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(10)
+  except:
+    print("Nova SDS-011 sensor failed to initialise - bailing out!")
+    myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"failed to initialise Nova SDS-011 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+    time.sleep(30)
+    sys.exit(1)
 else:
-  # if it gets to here, then an invalid particle sensor type was specified on the 
+  # if it gets to here, then an invalid particle sensor type was specified on the
   # command line, so might as well just exit, but sleep for 10 minutes first because
   # this program will automatically be restarted and the same error will happen until
-  # it is fixed. A 10 minute wait stops too many error info messages being sent. 
-  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"invalid particulate sensor type, shutting down"}}'.format(sensor_id,get_local_timestamp()), 0)
+  # it is fixed. A 10 minute wait stops too many error info messages being sent.
+  print("invalid particulate sensor type specified on command line, shutting down in 10 minutes")
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"invalid particulate sensor type specified on command line, shutting down in 10 minutes"}}'.format(sensor_id,get_local_timestamp()), 1)
   time.sleep(600)
   sys.exit(1)
 
@@ -161,25 +213,46 @@ else:
 # set up BMP180 temp and air pressure sensor
 ##################################################
 
-myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 0)
+myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialising BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
 time.sleep(10)
-# ultra-high res mode seems to work fine
-bmp = BMP085.BMP085(mode=BMP085.BMP085_ULTRAHIGHRES) 
+try:
+  # ultra-high res mode seems to work fine
+  bmp = BMP085.BMP085(mode=BMP085.BMP085_ULTRAHIGHRES)
+  print("BMP180 sensor initialised")
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"initialised BMP180 sensor"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(10)
+except:
+  print("BMP180 sensor failed to initialise, exiting program")
+  myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"BMP180 sensor failed to initialise, exiting program"}}'.format(sensor_id,get_local_timestamp()), 1)
+  time.sleep(30)
+  sys.exit(1)
 
 # note: the DHT22 temp and humidity sensor doesn't require any set up
 
 ##################################################
 # main loop forever
 ##################################################
+print("Starting main loop")
+myClient.publishAsync("sensors/info", '{{"sensor":"{:s}","timestamp":"{:s}","info":"starting main loop"}}'.format(sensor_id,get_local_timestamp()), 1)
+time.sleep(10)
+
+# initialise a main loop counter just for information
+mainLoopCounter = -1
+
 while True:
+
+  # increment and display main loop counter
+  mainLoopCounter += 1
+  print("Main loop number {:d}".format(mainLoopCounter))
+
   # the idea is to take 20 readings at 15 second intervals from each sensor type and store the results
-  # for each sensor type in a list, and then sort that list of values and discard the lowest three and highest 
+  # for each sensor type in a list, and then sort that list of values and discard the lowest three and highest
   # three readings, then calculate the average of the remaining readings. This is called a trimmed mean.
-  # The trimmedMean() function defined above does this. This should get rid of most erroneous 
+  # The trimmedMean() function defined above does this. This should get rid of most erroneous
   # measurements caused by sensor glitches will be discarded, and the data will be a lot cleaner
-  # without spikes of obviously incorrect readings. This data cleaning could be done after the 
+  # without spikes of obviously incorrect readings. This data cleaning could be done after the
   # data have been collected into the central database, but might as well do it at the
-  # point of data collection on each sensor device. 
+  # point of data collection on each sensor device.
 
   # first set up lists to hold the readings for each sensor device type on attached
   humidityReadings = list() # from the DHT22 sensor device
@@ -189,9 +262,14 @@ while True:
   pm10Readings = list() # air particulates from either SDS-011 or Honeywell devices
   pm25Readings = list() # air particulates from either SDS-011 or Honeywell devices
 
-  # now loop for 20 times to take readings from each device and append the reading to the 
-  # lists we just set up
+  # now loop for 20 times to take readings from each device and append the reading to the
+  # lists set up above
+  # print loop counter on console for information
+  # end='' stops a new line being added by print()
+  print("Inner loop number: ", end='', flush=True)
   for t in range(20):
+
+    print("{:d} ".format(t), end='', flush=True)
 
     # first get humidity and temp from the DHT22 device
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
@@ -200,7 +278,7 @@ while True:
     if humidity is None or temperature is None:
       for rereadTry in range(1,6):
         # log a message to the sensors/info MQTT topic
-        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"DHT22 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 0)
+        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"DHT22 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 1)
         # re-try after a few seconds
         time.sleep(10)
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 17)
@@ -220,7 +298,7 @@ while True:
     if bmp180_temperature is None or bmp180_airpressure is None:
       for rereadTry in range(1,6):
         # log a message to the sensors/info MQTT topic
-        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"BMP180 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 0)
+        myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"BMP180 reading failed, try number {:d}"}}'.format(sensor_id, get_local_timestamp(),rereadTry), 1)
         # re-try after a few seconds
         time.sleep(10)
         bmp180_temperature = bmp.read_temperature()
@@ -243,7 +321,7 @@ while True:
       pm_ts_utc, pm10, pm25 = str(hw.read()).split(",")
     else:
       # The particulate device type parameter on the command line must not be correct, so log it
-      myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"particulate device type parameter incorrect!"}}'.format(sensor_id, get_local_timestamp()), 0)
+      myClient.publishAsync("sensors/info", '{{"sensor":{:s},"timestamp":"{:s}","info":"particulate device type parameter incorrect!"}}'.format(sensor_id, get_local_timestamp()), 1)
       # sleep for 10 minutes since this error will keep happening until it is fixed
       time.sleep(600)
     # add the readings to the lists
@@ -252,6 +330,9 @@ while True:
 
     # now sleep for 10 seconds before repeating inner loop
     time.sleep(10)
+
+  # go to a new line in the console output
+  print(" ", flush=True)
 
   # at this point there should be 20 readings in lists for each of the measurement types
   # so get the trimmed mean of each of these lists
@@ -265,10 +346,8 @@ while True:
   print(get_local_timestamp(), meanHumidity, meanTemperature, meanPM25, meanPM10, meanBmp180Temperature, meanAirpressure)
   # assemble all these values into a JSON data payload string
   payload = '{{"sensor":"{:s}","timestamp":"{:s}","temperature":{:f},"humidity":{:f},"pm25":{:f},"pm10":{:f},"bmp180_temperature":{:f},"bmp180_airpressure":{:f}}}'.format(sensor_id, get_local_timestamp(),meanTemperature, meanHumidity,meanPM25,meanPM10,meanBmp180Temperature,meanAirpressure)
-  if myClient.publishAsync("sensors/data", payload, 0):
-    print("Data payload message sent")
-  else:
-    print("Unable to publish payload, will try again next round")
+  # send the data message, ask for an acknowledgement and call the acknowledge function to display this
+  myClient.publishAsync("sensors/data", payload, 1, ackCallback=myPubackCallback)
 
   # sleep for a few seconds before starting all over again
   time.sleep(10)

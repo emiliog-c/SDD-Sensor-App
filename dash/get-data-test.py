@@ -1,6 +1,6 @@
 
 import boto3 # Amazon AWS SDK library for access DynamoDB database
-from boto3.dynamodb.conditions import Key, Attr # used in queries
+from boto3.dynamodb.conditions import Key, Attr # used in filtering queries
 import json # library to deal with JSON data
 import time
 from datetime import datetime
@@ -41,6 +41,7 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 # process the flattened JSON data with the Pandas DataFrame() methods which
 # returns a Pandas dataframe object.
 
+
 n_clicks = 0
 
 def getSensorData():
@@ -52,6 +53,14 @@ def getSensorData():
                                     ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
 	
+
+# filter records to 1 july 2019 onwards
+response = dataTable.scan(FilterExpression=fe)
+data = response['Items']
+while response.get('LastEvaluatedKey'):
+                              ExclusiveStartKey=response['LastEvaluatedKey'])
+    data.extend(response['Items'])
+
     
     sensorData = pd.DataFrame(json_normalize(json.loads(data)))
 

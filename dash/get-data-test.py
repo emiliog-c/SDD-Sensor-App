@@ -1,5 +1,6 @@
 
 import boto3 # Amazon AWS SDK library for access DynamoDB database
+from boto3.dynamodb.conditions import Key, Attr # used in queries
 import json # library to deal with JSON data
 import time
 from datetime import datetime
@@ -8,6 +9,8 @@ from dynamodb_json import json_util as json # used to convert DynamoDB JSON to n
 import pandas as pd # pandas library for manipulating data
 from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data as required by pandas
 import dash
+import dash_table
+import pandas as pd
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
@@ -38,27 +41,34 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 # process the flattened JSON data with the Pandas DataFrame() methods which
 # returns a Pandas dataframe object.
 
-response = dataTable.scan()
-data = response['Items']
-while response.get('LastEvaluatedKey'):
-    response = dataTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-    data.extend(response['Items'])
+n_clicks = 0
+
+def getSensorData():
+    fe = Key('timestamp').gte('2019-07-03')    
+    response = dataTable.scan(FilterExpression=fe)
+    data = response['Items']
+    while response.get('LastEvaluatedKey'):
+        response = dataTable.scan(FilterExpression=fe,
+                                    ExclusiveStartKey=response['LastEvaluatedKey'])
+        data.extend(response['Items'])
+	
     
-sensorData = pd.DataFrame(json_normalize(json.loads(data)))
+    sensorData = pd.DataFrame(json_normalize(json.loads(data)))
 
-# show info about the dataframe
-# print(sensorData.info())
+    # first bit of tidying up is to delete the additional sensor ID column
+    sensorData = sensorData.drop(columns="data.sensor")
 
-# first bit of tidying up is to delete the additional sensor ID column
-sensorData = sensorData.drop(columns="data.sensor")
+    # now we need to convert the timestamp columns from strings into python datetime format
+    # using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
+    # can be referenced just using square brackets.
+    sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
+    sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
+    # also convert the SensorID column from string into integer
+    sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
+    return sensorData
 
-# now we need to convert the timestamp columns from strings into python datetime format
-# using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
-# can be referenced just using square brackets.
-sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
-sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
-# also convert the SensorID column from string into integer
-sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
+sensorData = getSensorData()
+
 
 # print out the dataframe
 # print(sensorData)
@@ -66,7 +76,17 @@ sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
 print(sensorData.info())
 
 # do the same for the sensors info table
-sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
+def getSensorInfo():
+    fe = Key('timestamp').gte('2019-07-03')    
+    response = infoTable.scan(FilterExpression=fe)
+    data = response['Items']
+    while response.get('LastEvaluatedKey'):
+        response = infoTable.scan(FilterExpression=fe,
+                                                ExclusiveStartKey=response['LastEvaluatedKey'])
+        data.extend(response['Items'])
+    sensorInfo = pd.DataFrame(json_normalize(json.loads(data['Items'])))
+    return(sensorInfo)
+
 # print out the dataframe
 # print(sensorInfo)
 # show info about the dataframe
@@ -78,7 +98,7 @@ print(sensorData.groupby('sensorID').count())
 
 app = dash.Dash(__name__)
 
-def make_graph(column, gtitle, y_label):
+def make_graph(sensorData, column, gtitle, y_label):
 	sensor1 = dict(
 		x=sensorData[sensorData.sensorID == 1].timestamp,
 		y=sensorData[sensorData.sensorID == 1][column],
@@ -149,14 +169,91 @@ def make_graph(column, gtitle, y_label):
 	fig = {'data': data, 'layout': layout}
 	return(fig)
 
+def SensorGraph(sensorData):
+    graphdiv = html.Div(children=[
+            dcc.Graph(id='temp-graph',figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius')),
+            dcc.Graph(id='humidity-graph', figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity')),
+            dcc.Graph(id='pm25-graph', figure=make_graph(sensorData, 'data.pm25', 'PM 2.5', 'micrograms per cubic metre')),
+            dcc.Graph(id='pm10-graph', figure=make_graph(sensorData, 'data.pm10', 'PM 10', 'micrograms per cubic metre')),
+            dcc.Graph(id='bmp180-temp-graph', figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius')),
+            dcc.Graph(id='bmp180-airpress-graph', figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'Pascals')),
+            ])
+    return graphdiv
+
+def infoTableDisplay(sensorInfo):
+    x = html.Div(children=[	
+        dash_table.DataTable(id='info-table', columns=[{"name": i, "id": i} for i in sensorInfo.columns],
+            data=sensorInfo.to_dict('records'),
+	    editable=False,
+            filtering=True,
+    	    sorting=True,
+	    sorting_type="multi",
+	    row_selectable="multi",
+	    row_deletable=False,
+	    selected_rows=[],
+	    pagination_mode="fe",
+	    pagination_settings={
+                "current_page": 0,
+			    "page_size": 50}
+                         )
+            ])
+    return(x)
+
+def getSensorInfo():
+    # do the same for the sensors info table
+    sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
+    return(sensorInfo)
+
+
+
 app.layout = html.Div([
-    dcc.Graph(id='temp-graph', figure=make_graph('data.temperature', 'Temperature', 'degrees Celcius')),
-    dcc.Graph(id='humidity-graph', figure=make_graph('data.humidity', 'Humidity', '% relative humidity')),
-    dcc.Graph(id='pm25-graph', figure=make_graph('data.pm25', 'PM 2.5', 'micrograms per cubic metre')),
-    dcc.Graph(id='pm10-graph', figure=make_graph('data.pm10', 'PM 10', 'micrograms per cubic metre')),
-    dcc.Graph(id='bmp180-temp-graph', figure=make_graph('data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius')),
-    dcc.Graph(id='bmp180-airpress-graph', figure=make_graph('data.bmp180_airpressure', 'Air pressure', 'Pascals')),
+    html.Div(id='container-button-basic', children=[
+        html.Button('Refresh', id='refresh-button')]),
+    dcc.Tabs(id="htmltabs", children=[
+        dcc.Tab(label='Homepage', children = [
+            html.Div(
+                html.H3('Homepage')
+            )]),
+        dcc.Tab(id = 'time-series-tab', label='Graph View'),
+        dcc.Tab(id = 'log-messages-tab', label='List View'),
+        dcc.Tab(id = 'data-log-tab', label='Data Log View')
+    ])
 ])
+
+@app.callback([Output('time-series-tab', 'children'), Output('log-messages-tab', 'children'), Output('data-log-tab', 'children')],
+              [Input('refresh-button', 'n_clicks')])
+def updateData(n_clicks):
+        sensorData = getSensorData()
+        sensorInfo = getSensorInfo()
+        tsg = SensorGraph(sensorData)
+        itd = infoTableDisplay(sensorInfo)
+        dlt = infoTableDisplay(sensorData)
+        return(tsg, itd, dlt)
+
+
+
+
+
+#@app.callback(Output('htmltabs_stuff', 'children'),
+ #             [Input('htmltabs', 'value')])
+#def render_content(tab):
+#    if tab == 'homepage':
+#        html.Div([
+ #           html.H3('homepage content'),
+  #          
+   #     ])
+    #elif tab == 'graphview':
+     #   return html.Div([
+      #      html.H3('graphview content')
+       # ])
+    #elif tab == 'listview':
+    #    return html.Div([
+    #        html.H3('listview content')
+    #    ])
+
+
+
+
 
 
 #app.layout = dash_table.DataTable(

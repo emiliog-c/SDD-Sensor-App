@@ -1,12 +1,12 @@
 # SDD-Sensor-App
 
-This project is a full suite regarding the use of a Honeywell Particle or Nova SDS-011 sensor attached to a Raspberry Pi, for the use of detecting the level of dust and smoke particles in the air. 
-There is also monitor temperature, humidity and air pressure through the Adafruit DHT22 sensor (add reference) and Adafruit BMP180.
-The particle sensor communicate with the Raspberry Pi through the serial port on pins 2 (5V In), 8 (Recieved IN to transmit), 9 (GND IN) and 10 (Transmit IN to recieve).
-The Adafruit DHT is connected on pins 1 (3.3V), 11 (GPIO17) and 14 (GND). There is a 7.5 kiloohm pullup resistor between the GPIO pin and 3.3V supply (see as per wiring diagram).
-THe BMP180 air pressure sensor connects via I2C protocol (high speed serial protocol). Follow the instructions on this page to ensure that your sensor is working.
-Pins 8 and 9 implement the serial port (UART) on the RPi.
-This package also connects to the internet, and sends all the data to a database for it to be placed into tables and exported to a website.
+* This project is a full suite regarding the use of a Honeywell Particle or Nova SDS-011 sensor attached to a Raspberry Pi, for the use of detecting the level of dust and smoke particles in the air. 
+* There is also monitor temperature, humidity and air pressure through the Adafruit DHT22 sensor (add reference) and Adafruit BMP180.
+* The particle sensor communicate with the Raspberry Pi through the serial port on pins 2 (5V In), 8 (Recieved IN to transmit), 9 (GND IN) and 10 (Transmit IN to recieve). (see http://www.farnell.com/datasheets/2313714.pdf?_ga=2.50869865.1516986720.1562884160-530993158.1562884160 )
+* The Adafruit DHT is connected on pins 1 (3.3V), 11 (GPIO17) and 14 (GND). There is a 7.5 kiloohm pullup resistor between the GPIO pin and 3.3V supply (see as per wiring diagram). See https://learn.adafruit.com/dht-humidity-sensing-on-raspberry-pi-with-gdocs-logging/overview
+* The BMP180 air pressure sensor connects via I2C protocol (high speed serial protocol). Follow the instructions on this page to ensure that your sensor is working: https://tutorials-raspberrypi.com/raspberry-pi-and-i2c-air-pressure-sensor-bmp180/
+* Pins 8 and 9 implement the serial port (UART) on the RPi.
+* This package also connects to the internet, and sends all the data to a database for it to be placed into tables and exported to a website.
 
 
 ## AWS Setup

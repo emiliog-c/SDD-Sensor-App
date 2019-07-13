@@ -205,6 +205,19 @@ def infoTableDisplay(sensorInfo):
             ])
     return(x)
 
+def homepageSelector():
+    u = html.Div(children=[
+            dcc.Dropdown(id = 'my-dropdown', options=[
+                        {'label': 'Sensor 1', 'value': '1'},
+                        {'label': 'Sensor 2', 'value': '2'},
+                        {'label': 'Sensor 3', 'value': '3'}
+            ],
+            value='1'
+    )])
+    return(u)
+        
+
+
 def getSensorInfo():
     # do the same for the sensors info table
     sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
@@ -216,25 +229,23 @@ app.layout = html.Div([
     html.Div(id='container-button-basic', children=[
         html.Button('Refresh', id='refresh-button')]),
     dcc.Tabs(id="htmltabs", children=[
-        dcc.Tab(label='Homepage', children = [
-            html.Div(
-                html.H3('Homepage')
-            )]),
+        dcc.Tab(id='Homepage', label='Homepage'),
         dcc.Tab(id = 'time-series-tab', label='Graph View'),
         dcc.Tab(id = 'log-messages-tab', label='List View'),
         dcc.Tab(id = 'data-log-tab', label='Data Log View')
     ])
 ])
 
-@app.callback([Output('time-series-tab', 'children'), Output('log-messages-tab', 'children'), Output('data-log-tab', 'children')],
+@app.callback([Output('Homepage', 'children'), Output('time-series-tab', 'children'), Output('log-messages-tab', 'children'), Output('data-log-tab', 'children')],
               [Input('refresh-button', 'n_clicks')])
 def updateData(n_clicks):
         sensorData = getSensorData()
         sensorInfo = getSensorInfo()
+        hp = homepageSelector()
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
         dlt = infoTableDisplay(sensorData)
-        return(tsg, itd, dlt)
+        return(hp, tsg, itd, dlt)
 
 
 

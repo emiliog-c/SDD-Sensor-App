@@ -48,32 +48,27 @@ def getSensorData():
     fe = Key('timestamp').gte('2019-07-03')    
     response = dataTable.scan(FilterExpression=fe)
     data = response['Items']
-    while response.get('LastEvaluatedKey'):
-        response = dataTable.scan(FilterExpression=fe,
-                                    ExclusiveStartKey=response['LastEvaluatedKey'])
-        data.extend(response['Items'])
 	
 
-# filter records to 1 july 2019 onwards
-response = dataTable.scan(FilterExpression=fe)
-data = response['Items']
-while response.get('LastEvaluatedKey'):
+
+    while response.get('LastEvaluatedKey'):
+        response = dataTable.scan(FilterExpression=fe,
                               ExclusiveStartKey=response['LastEvaluatedKey'])
-    data.extend(response['Items'])
+        data.extend(response['Items'])
 
     
-    sensorData = pd.DataFrame(json_normalize(json.loads(data)))
+        sensorData = pd.DataFrame(json_normalize(json.loads(data)))
 
-    # first bit of tidying up is to delete the additional sensor ID column
-    sensorData = sensorData.drop(columns="data.sensor")
+        # first bit of tidying up is to delete the additional sensor ID column
+        sensorData = sensorData.drop(columns="data.sensor")
 
-    # now we need to convert the timestamp columns from strings into python datetime format
-    # using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
-    # can be referenced just using square brackets.
-    sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
-    sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
-    # also convert the SensorID column from string into integer
-    sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
+        # now we need to convert the timestamp columns from strings into python datetime format
+        # using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
+        # can be referenced just using square brackets.
+        sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
+        sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
+        # also convert the SensorID column from string into integer
+        sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
     return sensorData
 
 sensorData = getSensorData()

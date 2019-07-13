@@ -45,18 +45,19 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 n_clicks = 0
 
 def getSensorData():
+    # filter records down to just 3 july 2019 onwards
     fe = Key('timestamp').gte('2019-07-03')    
     response = dataTable.scan(FilterExpression=fe)
     data = response['Items']
-	
-
-
     while response.get('LastEvaluatedKey'):
         response = dataTable.scan(FilterExpression=fe,
-                              ExclusiveStartKey=response['LastEvaluatedKey'])
+                                    ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
-
     
+        # load data into a pandas DataFrame via the json.loads() function
+        # that converts DynamoDB JSON into standard JSON (see https://github.com/Alonreznik/dynamodb-json )
+        # and via the json_normalize() function in pandas that converts nested JSON data into a flat table form
+        # required by pandas
         sensorData = pd.DataFrame(json_normalize(json.loads(data)))
 
         # first bit of tidying up is to delete the additional sensor ID column
@@ -81,12 +82,13 @@ print(sensorData.info())
 
 # do the same for the sensors info table
 def getSensorInfo():
+    # filter records down to just 3 july 2019 onwards
     fe = Key('timestamp').gte('2019-07-03')    
     response = infoTable.scan(FilterExpression=fe)
     data = response['Items']
     while response.get('LastEvaluatedKey'):
         response = infoTable.scan(FilterExpression=fe,
-                                                ExclusiveStartKey=response['LastEvaluatedKey'])
+                                    ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
     sensorInfo = pd.DataFrame(json_normalize(json.loads(data['Items'])))
     return(sensorInfo)
@@ -280,4 +282,6 @@ def updateData(n_clicks):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
 

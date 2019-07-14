@@ -44,14 +44,11 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 
 n_clicks = 0
 
-def getSensorData():
-    # filter records down to just 3 july 2019 onwards
-    fe = Key('timestamp').gte('2019-07-03')    
-    response = dataTable.scan(FilterExpression=fe)
+def getSensorData(): 
+    response = dataTable.scan()
     data = response['Items']
     while response.get('LastEvaluatedKey'):
-        response = dataTable.scan(FilterExpression=fe,
-                                    ExclusiveStartKey=response['LastEvaluatedKey'])
+        response = dataTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
     
         # load data into a pandas DataFrame via the json.loads() function
@@ -82,13 +79,10 @@ print(sensorData.info())
 
 # do the same for the sensors info table
 def getSensorInfo():
-    # filter records down to just 3 july 2019 onwards
-    fe = Key('timestamp').gte('2019-07-03')    
-    response = infoTable.scan(FilterExpression=fe)
+    response = infoTable.scan()
     data = response['Items']
     while response.get('LastEvaluatedKey'):
-        response = infoTable.scan(FilterExpression=fe,
-                                    ExclusiveStartKey=response['LastEvaluatedKey'])
+        response = infoTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
     sensorInfo = pd.DataFrame(json_normalize(json.loads(data['Items'])))
     return(sensorInfo)

@@ -21,6 +21,7 @@ from app_passwords import VALID_USERNAME_PASSWORD_PAIRS # note: the app_password
 # }
 # where XXXX is the password for each user
 import dash_table
+import dash_daq as daq
 import pandas as pd
 import dash_core_components as dcc
 import dash_html_components as html
@@ -78,6 +79,8 @@ def getSensorData():
         sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
         # also convert the SensorID column from string into integer
         sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
+        # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
+        sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True) 
     return sensorData
 
 sensorData = getSensorData()
@@ -96,6 +99,8 @@ def getSensorInfo():
         response = infoTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
     sensorInfo = pd.DataFrame(json_normalize(json.loads(data['Items'])))
+    # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
+    sensorInfo.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True) 
     return(sensorInfo)
 
 # print out the dataframe
@@ -215,16 +220,16 @@ def infoTableDisplay(sensorInfo):
             ])
     return(x)
 
-def homepageSelector():
-    u = html.Div(children=[
-            dcc.Dropdown(id = 'my-dropdown', options=[
-                        {'label': 'Sensor 1', 'value': '1'},
-                        {'label': 'Sensor 2', 'value': '2'},
-                        {'label': 'Sensor 3', 'value': '3'}
-            ],
-            value='1'
-    )])
-    return(u)
+def homepageSelector(latestSensorData):
+    df2 = latestSensorData.set_index('sensorID', drop = False)
+    k = [html.Div(children = daq.Thermometer(
+        min=-20,
+        max=50,
+        value = df2.at[1,'data.temperature'],
+        showCurrentValue=True,
+        units="C"
+))]
+    return(k)
 
 def aboutApp():
     a = html.Div(children=[dcc.Markdown('''
@@ -271,7 +276,10 @@ def updateData(n_clicks):
         sensorData = getSensorData()
         timeLastRefreshed = "Data was last refreshed at {:%H:%M:%S on %d %B, %Y}".format(datetime.now())
         sensorInfo = getSensorInfo()
-        hp = homepageSelector()
+        # updating last obtained data
+        maxTimestamps = sensorData.groupby('sensorID')['timestamp'].max().reset_index() 
+        latestSensorData = pd.merge(sensorData, maxTimestamps, how='inner') 
+        hp = homepageSelector(latestSensorData)
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
         dlt = infoTableDisplay(sensorData)

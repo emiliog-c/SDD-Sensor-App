@@ -9,7 +9,17 @@ import pandas as pd # pandas library for manipulating data
 from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data as required by pandas
 import dash
 import dash_auth
-from app_passwords import VALID_USERNAME_PASSWORD_PAIRS #import passwords by creating a file called app_passwords.py in the same directory
+from app_passwords import VALID_USERNAME_PASSWORD_PAIRS # note: the app_passwords.py file imported in the line above
+# just contains something like this:
+# # Keep this out of git and GitHub!
+# VALID_USERNAME_PASSWORD_PAIRS = {
+#    'admin': 'XXXX',
+#     'sensor1': 'XXXX',
+#     'sensor2': 'XXXXX',
+#     'sensor3': 'XXXXX',
+#     'sensor4': 'XXXXX',
+# }
+# where XXXX is the password for each user
 import dash_table
 import pandas as pd
 import dash_core_components as dcc
@@ -98,12 +108,11 @@ print(sensorData.groupby('sensorID').count())
 # sys.exit()
 
 app = dash.Dash(__name__)
-print (VALID_USERNAME_PASSWORD_PAIRS)
 #setup basic authentication as per https://dash.plot.ly/authentication
-auth = dash_auth.BasicAuth(
-    app,
-    VALID_USERNAME_PASSWORD_PAIRS
-    )
+#auth = dash_auth.BasicAuth(
+ #   app,
+  #  VALID_USERNAME_PASSWORD_PAIRS
+   # )
 
 def make_graph(sensorData, column, gtitle, y_label):
 	sensor1 = dict(
@@ -216,6 +225,17 @@ def homepageSelector():
             value='1'
     )])
     return(u)
+
+def aboutApp():
+    a = html.Div(children=[dcc.Markdown('''
+### title
+
+this is markdown, placeholder
+      * item1
+      * item2
+      '''
+            )])
+    return a
         
 
 
@@ -226,27 +246,36 @@ def getSensorInfo():
 
 
 
-app.layout = html.Div([
+
+app.layout = html.Div(children=[
+    html.H1('SDD Sensor App Dashboard'),
+    dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="circle"),
     html.Div(id='container-button-basic', children=[
         html.Button('Refresh', id='refresh-button')]),
     dcc.Tabs(id="htmltabs", children=[
         dcc.Tab(id='Homepage', label='Homepage'),
         dcc.Tab(id = 'time-series-tab', label='Graph View'),
-        dcc.Tab(id = 'log-messages-tab', label='List View'),
-        dcc.Tab(id = 'data-log-tab', label='Data Log View')
+        dcc.Tab(id = 'data-table-tab', label='Data Table View'),
+        dcc.Tab(id = 'log-messages-tab', label='Log View'),
+        dcc.Tab(id = 'about-tab', label='About', children=aboutApp())
     ])
 ])
 
-@app.callback([Output('Homepage', 'children'), Output('time-series-tab', 'children'), Output('log-messages-tab', 'children'), Output('data-log-tab', 'children')],
+@app.callback([Output('Homepage', 'children'),
+               Output('time-series-tab', 'children'),
+               Output('log-messages-tab', 'children'),
+               Output('data-table-tab', 'children'),
+               Output('loading-output-1', 'children')],
               [Input('refresh-button', 'n_clicks')])
 def updateData(n_clicks):
         sensorData = getSensorData()
+        timeLastRefreshed = "Data was last refreshed at {:%H:%M:%S on %d %B, %Y}".format(datetime.now())
         sensorInfo = getSensorInfo()
         hp = homepageSelector()
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
         dlt = infoTableDisplay(sensorData)
-        return(hp, tsg, itd, dlt)
+        return(hp, tsg, itd, dlt, timeLastRefreshed)
 
 
 

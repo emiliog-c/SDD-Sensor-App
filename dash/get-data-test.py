@@ -1,4 +1,3 @@
-
 import boto3 # Amazon AWS SDK library for access DynamoDB database
 from boto3.dynamodb.conditions import Key, Attr # used in filtering queries
 import json # library to deal with JSON data
@@ -9,6 +8,8 @@ from dynamodb_json import json_util as json # used to convert DynamoDB JSON to n
 import pandas as pd # pandas library for manipulating data
 from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data as required by pandas
 import dash
+import dash_auth
+from app_passwords import VALID_USERNAME_PASSWORD_PAIRS #import passwords by creating a file called app_passwords.py in the same directory
 import dash_table
 import pandas as pd
 import dash_core_components as dcc
@@ -97,6 +98,12 @@ print(sensorData.groupby('sensorID').count())
 # sys.exit()
 
 app = dash.Dash(__name__)
+print (VALID_USERNAME_PASSWORD_PAIRS)
+#setup basic authentication as per https://dash.plot.ly/authentication
+auth = dash_auth.BasicAuth(
+    app,
+    VALID_USERNAME_PASSWORD_PAIRS
+    )
 
 def make_graph(sensorData, column, gtitle, y_label):
 	sensor1 = dict(

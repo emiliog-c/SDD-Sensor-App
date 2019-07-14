@@ -235,25 +235,26 @@ def homepageSelector(latestSensorData):
         value=df2.at[1,'data.humidity'],
         label='Humidity',
         max=100,
+        min=0)),
         html.Div(children=daq.Gauge(
         showCurrentValue=True,
         units="Air Pressure",
         value=df2.at[1,'data.bmp180_airpressure'],
         label='Default',
         max=110000,
-        min=0)),
+        min=80000)),
         html.Div(children=daq.LEDDisplay(
-        label="PM2.5",
+        label="PM2.5 (µg/m3)",
         labelPosition='bottom',
         backgroundColor="#5be4fc",
         color="#000000",
-        value=df2.at[1,'data.pm25'])),
+        value=df2.at[1,'data.pm25'].round(2))),
         html.Div(children=daq.LEDDisplay(
-        label="PM10",
+        label="PM10 (µg/m3)",
         labelPosition='bottom',
         backgroundColor="#5be4fc",
         color="#000000",
-        value=df2.at[1,'data.pm10']))])]
+        value=df2.at[1,'data.pm10'].round(2)))])]
         
   
 

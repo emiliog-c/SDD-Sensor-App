@@ -222,13 +222,42 @@ def infoTableDisplay(sensorInfo):
 
 def homepageSelector(latestSensorData):
     df2 = latestSensorData.set_index('sensorID', drop = False)
-    k = [html.Div(children = daq.Thermometer(
+    k = [html.Div(children = [
+        html.Div(children=daq.Thermometer(
         min=-20,
         max=50,
         value = df2.at[1,'data.temperature'],
         showCurrentValue=True,
-        units="C"
-))]
+        units="C")),
+        html.Div(children=daq.Gauge(
+        showCurrentValue=True,
+        units="Rel.Humidity%",
+        value=df2.at[1,'data.humidity'],
+        label='Humidity',
+        max=100,
+        html.Div(children=daq.Gauge(
+        showCurrentValue=True,
+        units="Air Pressure",
+        value=df2.at[1,'data.bmp180_airpressure'],
+        label='Default',
+        max=110000,
+        min=0)),
+        html.Div(children=daq.LEDDisplay(
+        label="PM2.5",
+        labelPosition='bottom',
+        backgroundColor="#5be4fc",
+        color="#000000",
+        value=df2.at[1,'data.pm25'])),
+        html.Div(children=daq.LEDDisplay(
+        label="PM10",
+        labelPosition='bottom',
+        backgroundColor="#5be4fc",
+        color="#000000",
+        value=df2.at[1,'data.pm10']))])]
+        
+  
+
+
     return(k)
 
 def aboutApp():

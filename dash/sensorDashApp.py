@@ -119,12 +119,16 @@ print(sensorData.groupby('sensorID').count())
 
 # sys.exit()
 
-application = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-#setup basic authentication as per https://dash.plot.ly/authentication
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+# this is needed to run properly on AWS ElasticBeanstalk
+application = app.server
+
+#setup basic authentication as per https://dash.plot.ly/authentication
+# doesn't work on Windows, so skip it if running Windows
 if platform.system() != 'Windows':
     auth = dash_auth.BasicAuth(
-        application,
+        app,
         VALID_USERNAME_PASSWORD_PAIRS
     )
 
@@ -353,7 +357,7 @@ def getSensorInfo():
     sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
     return(sensorInfo)
 
-application.layout = html.Div(className='container', children=[
+app.layout = html.Div(className='container', children=[
     dbc.Card(
         dbc.CardBody(
             [
@@ -373,7 +377,7 @@ application.layout = html.Div(className='container', children=[
         dbc.Tab(id = 'about-tab', label='About', children=aboutApp())
     ])])
 
-@application.callback([Output('Homepage', 'children'),
+@app.callback([Output('Homepage', 'children'),
                Output('time-series-tab', 'children'),
                Output('log-messages-tab', 'children'),
                Output('data-table-tab', 'children'),
@@ -393,7 +397,7 @@ def updateData(n_clicks):
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
 if __name__ == '__main__':
-    application.run_server(debug=True)
+    app.run_server(debug=True)
 
 
 

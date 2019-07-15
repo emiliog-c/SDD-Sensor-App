@@ -36,7 +36,11 @@ import platform
 # create an AWS session, references the .aws/credentials file in home directory
 # the credentials file has a section called SDD-Sensors containing the AWS account 
 # identifier and secrete key (passowrd) for it to access the DynamoDB database
-session = boto3.Session(profile_name='SDD-Sensors')
+if platform.system() == 'Windows' or platform.system() == 'Darwin':
+    session = boto3.Session(profile_name='SDD-Sensors')
+else:
+    # if linux then will check environment variables automatically, if says
+    session = boto3.Session()
 
 # set up a handle to the database
 dynamodb = session.resource('dynamodb', region_name='ap-southeast-2',)

@@ -233,16 +233,16 @@ def infoTableDisplay(sensorInfo):
 	# filter_action="native",		     
         # filtering=True,
     	sorting=True,
-	    sorting_type="multi",
-	    row_selectable=False,
-	    row_deletable=False,
-	    selected_rows=[],
+	# sorting_type="multi",
+	row_selectable=False,
+	row_deletable=False,
+	selected_rows=[],
 	    # pagination_mode="fe",
 	    # pagination_settings={
             #     "current_page": 0,
 	    #	    "page_size": 50}
-            )
-            ])
+        )
+        ])
     return(x)
     
 def dataTableDisplay(sensorData):
@@ -262,7 +262,7 @@ def dataTableDisplay(sensorData):
 	    # filter_action="native",
             # filtering=True,
     	    sorting=True,
-	    sorting_type="multi",
+	    # sorting_type="multi",
 	    row_selectable="multi",
 	    row_deletable=False,
 	    selected_rows=[],

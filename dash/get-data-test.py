@@ -223,44 +223,68 @@ def infoTableDisplay(sensorInfo):
 
 def homepageSelector(latestSensorData):
     df2 = latestSensorData.set_index('sensorID', drop = False)
-    k = [html.Div(children = [
-        html.Div(children=daq.Thermometer(
-        min=-20,
-        max=50,
-        value = df2.at[1,'data.temperature'],
-        showCurrentValue=True,
-        units="C")),
-        html.Div(children=daq.Gauge(
-        showCurrentValue=True,
-        units="Rel.Humidity%",
-        value=df2.at[1,'data.humidity'],
-        label='Humidity',
-        max=100,
-        min=0)),
-        html.Div(children=daq.Gauge(
-        showCurrentValue=True,
-        units="Air Pressure",
-        value=df2.at[1,'data.bmp180_airpressure'],
-        label='Default',
-        max=110000,
-        min=80000)),
-        html.Div(children=daq.LEDDisplay(
-        label="PM2.5 (µg/m3)",
-        labelPosition='bottom',
-        backgroundColor="#5be4fc",
-        color="#000000",
-        value=df2.at[1,'data.pm25'].round(2))),
-        html.Div(children=daq.LEDDisplay(
-        label="PM10 (µg/m3)",
-        labelPosition='bottom',
-        backgroundColor="#5be4fc",
-        color="#000000",
-        value=df2.at[1,'data.pm10'].round(2)))])]
-        
-  
-
-
-    return(k)
+    j = []
+    for sID in range(1,5):
+        k = [dbc.Row([
+                dbc.Col(
+                    daq.Thermometer(
+                    min=-20,
+                    max=50,
+                    value = df2.at[sID,'data.temperature'],
+                    showCurrentValue=True,
+                    units="C"),
+                    width = "auto",
+                ),
+                dbc.Col(
+                    daq.Gauge(
+                    showCurrentValue=True,
+                    units="Rel.Humidity%",
+                    value=df2.at[sID,'data.humidity'],
+                    label='Humidity',
+                    max=100,
+                    min=0),
+                    width = "auto",
+                ),
+                dbc.Col(
+                    daq.Gauge(
+                    showCurrentValue=True,
+                    units="Air Pressure",
+                    value=df2.at[sID,'data.bmp180_airpressure'],
+                    label='Default',
+                    max=110000,
+                    min=80000),
+                    width = "auto",
+                ),
+                dbc.Col(
+                    daq.LEDDisplay(
+                    label="PM2.5 (µg/m3)",
+                    labelPosition='bottom',
+                    backgroundColor="#5be4fc",
+                    color="#000000",
+                    value=df2.at[sID,'data.pm25'].round(2)),
+                    width = "auto",
+                ),
+                dbc.Col(
+                    daq.LEDDisplay(
+                    label="PM10 (µg/m3)",
+                    labelPosition='bottom',
+                    backgroundColor="#5be4fc",
+                    color="#000000",
+                    value=df2.at[sID,'data.pm10'].round(2)),
+                    width = "auto",
+                )
+            ])]
+        j.extend(k)
+    l= html.Div(className='container', children=[
+        dbc.Card(
+            dbc.CardBody(
+            [
+                 html.Div(children = j)]
+            )
+            )
+        ])
+    return l
+    
 
 def aboutApp():
     a = html.Div(children=[dcc.Markdown('''

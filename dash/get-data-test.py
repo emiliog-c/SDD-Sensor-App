@@ -244,7 +244,7 @@ def dataTableDisplay(sensorData):
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
                     {'name': 'Temperature', 'id': 'data.temperature'},
                     {'name': 'Humidity', 'id': 'data.humidity'},
-                    {'name': 'Airpressure', 'id': 'data.bmp180_airpressure'},
+                    {'name': 'Air pressure', 'id': 'data.bmp180_airpressure'},
                     {'name': 'PM2.5', 'id': 'data.pm25'},
                     {'name': 'PM10', 'id': 'data.pm10'}
                 ],

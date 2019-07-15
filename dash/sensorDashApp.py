@@ -237,11 +237,11 @@ def infoTableDisplay(sensorInfo):
 	    row_selectable=False,
 	    row_deletable=False,
 	    selected_rows=[],
-	    pagination_mode="fe",
-	    pagination_settings={
-                "current_page": 0,
-			    "page_size": 50}
-                         )
+	    # pagination_mode="fe",
+	    # pagination_settings={
+            #     "current_page": 0,
+	    #	    "page_size": 50}
+            )
             ])
     return(x)
     
@@ -266,11 +266,11 @@ def dataTableDisplay(sensorData):
 	    row_selectable="multi",
 	    row_deletable=False,
 	    selected_rows=[],
-	    pagination_mode="fe",
-	    pagination_settings={
-                "current_page": 0,
-			    "page_size": 50}
-                         )
+	    # pagination_mode="fe",
+	    # pagination_settings={
+            #     "current_page": 0,
+	    #	    "page_size": 50}
+            )
             ])
     return(x)
 

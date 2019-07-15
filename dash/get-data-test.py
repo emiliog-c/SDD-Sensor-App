@@ -24,6 +24,7 @@ import dash_table
 import dash_daq as daq
 import pandas as pd
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.plotly as py
@@ -112,7 +113,7 @@ print(sensorData.groupby('sensorID').count())
 
 # sys.exit()
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 #setup basic authentication as per https://dash.plot.ly/authentication
 #auth = dash_auth.BasicAuth(
  #   app,
@@ -267,9 +268,18 @@ def aboutApp():
 
 this is markdown, placeholder
       * item1
-      * item2
+      * item2htmp
       '''
             )])
+    a = dbc.Card(
+            dbc.CardBody(
+                dcc.Markdown('''
+### title
+
+this is markdown, placeholder
+      * item1
+      * item2htmp ''')))
+                    
     return a
         
 
@@ -282,19 +292,25 @@ def getSensorInfo():
 
 
 
-app.layout = html.Div(children=[
-    html.H1('SDD Sensor App Dashboard'),
-    dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="circle"),
-    html.Div(id='container-button-basic', children=[
-        html.Button('Refresh', id='refresh-button')]),
-    dcc.Tabs(id="htmltabs", children=[
-        dcc.Tab(id='Homepage', label='Homepage'),
-        dcc.Tab(id = 'time-series-tab', label='Graph View'),
-        dcc.Tab(id = 'data-table-tab', label='Data Table View'),
-        dcc.Tab(id = 'log-messages-tab', label='Log View'),
-        dcc.Tab(id = 'about-tab', label='About', children=aboutApp())
-    ])
-])
+app.layout = html.Div(className='container', children=[
+    dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div(id='header-div', children=[
+                    dbc.Row([
+                        dbc.Col(html.H1('SDD Sensor App Dashboard'),width=6, align='center'),
+                        dbc.Col(dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="circle"), width=5, align='center'),
+                        dbc.Col(dbc.Button('Refresh', id='refresh-button', className = 'mr-1', color = "primary"), width=1, align='center'),
+                    ])
+                ]),
+            ])),
+    dbc.Tabs(id="htmltabs", children=[
+        dbc.Tab(id='Homepage', label='Homepage'),
+        dbc.Tab(id = 'time-series-tab', label='Graph View'),
+        dbc.Tab(id = 'data-table-tab', label='Data Table View'),
+        dbc.Tab(id = 'log-messages-tab', label='Log View'),
+        dbc.Tab(id = 'about-tab', label='About', children=aboutApp())
+    ])])
 
 @app.callback([Output('Homepage', 'children'),
                Output('time-series-tab', 'children'),

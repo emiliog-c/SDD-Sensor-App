@@ -119,12 +119,12 @@ print(sensorData.groupby('sensorID').count())
 
 # sys.exit()
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+application = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 #setup basic authentication as per https://dash.plot.ly/authentication
 
 if platform.system() != 'Windows':
     auth = dash_auth.BasicAuth(
-        app,
+        application,
         VALID_USERNAME_PASSWORD_PAIRS
     )
 
@@ -353,10 +353,7 @@ def getSensorInfo():
     sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
     return(sensorInfo)
 
-
-
-
-app.layout = html.Div(className='container', children=[
+application.layout = html.Div(className='container', children=[
     dbc.Card(
         dbc.CardBody(
             [
@@ -376,7 +373,7 @@ app.layout = html.Div(className='container', children=[
         dbc.Tab(id = 'about-tab', label='About', children=aboutApp())
     ])])
 
-@app.callback([Output('Homepage', 'children'),
+@application.callback([Output('Homepage', 'children'),
                Output('time-series-tab', 'children'),
                Output('log-messages-tab', 'children'),
                Output('data-table-tab', 'children'),
@@ -395,52 +392,8 @@ def updateData(n_clicks):
         dlt = dataTableDisplay(sensorData)
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
-
-
-
-
-#@app.callback(Output('htmltabs_stuff', 'children'),
- #             [Input('htmltabs', 'value')])
-#def render_content(tab):
-#    if tab == 'homepage':
-#        html.Div([
- #           html.H3('homepage content'),
-  #          
-   #     ])
-    #elif tab == 'graphview':
-     #   return html.Div([
-      #      html.H3('graphview content')
-       # ])
-    #elif tab == 'listview':
-    #    return html.Div([
-    #        html.H3('listview content')
-    #    ])
-
-
-
-
-
-
-#app.layout = dash_table.DataTable(
-#    id='table',
-#    columns=[{"name": i, "id": i} for i in sensorData.columns],
-#    data=sensorData.to_dict('records'),#
-#	editable=False,
-#    filtering=True,
-#    sorting=True,
-#    sorting_type="multi",
-#    row_selectable="multi",
-#    row_deletable=False,
-#    selected_rows=[],
-#    pagination_mode="fe",
-#    pagination_settings={
-#            "current_page": 0,
-#            "page_size": 10,
-#    },    
-#)
-
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    application.run_server(debug=True)
 
 
 

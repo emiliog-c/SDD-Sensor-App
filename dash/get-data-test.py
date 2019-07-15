@@ -31,6 +31,7 @@ from dash.dependencies import Input, Output
 import plotly.plotly as py
 import plotly.graph_objs as go
 import sys
+import platform
 
 # create an AWS session, references the .aws/credentials file in home directory
 # the credentials file has a section called SDD-Sensors containing the AWS account 
@@ -116,10 +117,12 @@ print(sensorData.groupby('sensorID').count())
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 #setup basic authentication as per https://dash.plot.ly/authentication
-#auth = dash_auth.BasicAuth(
- #   app,
-  #  VALID_USERNAME_PASSWORD_PAIRS
-   # )
+
+if platform.system() != 'Windows':
+    auth = dash_auth.BasicAuth(
+        app,
+        VALID_USERNAME_PASSWORD_PAIRS
+    )
 
 def make_graph(sensorData, column, gtitle, y_label):
 	sensor1 = dict(
@@ -194,19 +197,58 @@ def make_graph(sensorData, column, gtitle, y_label):
 
 def SensorGraph(sensorData):
     graphdiv = html.Div(children=[
-            dcc.Graph(id='temp-graph',figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius')),
-            dcc.Graph(id='humidity-graph', figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity')),
-            dcc.Graph(id='pm25-graph', figure=make_graph(sensorData, 'data.pm25', 'PM 2.5', 'micrograms per cubic metre')),
-            dcc.Graph(id='pm10-graph', figure=make_graph(sensorData, 'data.pm10', 'PM 10', 'micrograms per cubic metre')),
-            dcc.Graph(id='bmp180-temp-graph', figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius')),
-            dcc.Graph(id='bmp180-airpress-graph', figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'Pascals')),
+            dbc.Card(body = True, children=[dcc.Graph(id='temp-graph',figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius'))]),
+            dbc.Card(body = True, children=[dcc.Graph(id='bmp180-temp-graph', figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius'))]),
+            dbc.Card(body = True, children=[dcc.Graph(id='humidity-graph', figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity'))]),
+            dbc.Card(body = True, children=[dcc.Graph(id='bmp180-airpress-graph', figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'Pascals'))]),
+            dbc.Card(body = True, children=[dcc.Graph(id='pm25-graph', figure=make_graph(sensorData, 'data.pm25', 'PM 2.5', 'micrograms per cubic metre'))]),
+            dbc.Card(body = True, children=[dcc.Graph(id='pm10-graph', figure=make_graph(sensorData, 'data.pm10', 'PM 10', 'micrograms per cubic metre'))]),
             ])
     return graphdiv
 
 def infoTableDisplay(sensorInfo):
     x = html.Div(children=[	
-        dash_table.DataTable(id='info-table', columns=[{"name": i, "id": i} for i in sensorInfo.columns],
-            data=sensorInfo.to_dict('records'),
+        dash_table.DataTable(id='info-table', 
+        #columns=[{"name": i, "id": i} for i in sensorInfo.columns],
+        columns=[{'name': 'Sensor ID', 'id': 'sensorID'},
+                    {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
+                    {'name': 'Log Info', 'id': 'info.info', 'type': 'text'}
+                ],
+        style_cell_conditional=[
+            {
+                'if': {'column_id': c},
+                'textAlign': 'left'
+            } for c in ['info.info', 'timestamp', 'sensorID']
+        ],
+        data=sensorInfo.to_dict('records'),
+	    editable=False,
+        filtering=True,
+    	sorting=True,
+	    sorting_type="multi",
+	    row_selectable=False,
+	    row_deletable=False,
+	    selected_rows=[],
+	    pagination_mode="fe",
+	    pagination_settings={
+                "current_page": 0,
+			    "page_size": 50}
+                         )
+            ])
+    return(x)
+    
+def dataTableDisplay(sensorData):
+    x = html.Div(children=[	
+        dash_table.DataTable(id='info-table', 
+        #columns=[{"name": i, "id": i} for i in sensorInfo.columns],
+        columns=[{'name': 'Sensor ID', 'id': 'sensorID'},
+                    {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
+                    {'name': 'Temperature', 'id': 'data.temperature'},
+                    {'name': 'Humidity', 'id': 'data.humidity'},
+                    {'name': 'Airpressure', 'id': 'data.bmp180_airpressure'},
+                    {'name': 'PM2.5', 'id': 'data.pm25'},
+                    {'name': 'PM10', 'id': 'data.pm10'}
+                ],
+            data=sensorData.to_dict('records'),
 	    editable=False,
             filtering=True,
     	    sorting=True,
@@ -346,7 +388,7 @@ def updateData(n_clicks):
         hp = homepageSelector(latestSensorData)
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
-        dlt = infoTableDisplay(sensorData)
+        dlt = dataTableDisplay(sensorData)
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
 

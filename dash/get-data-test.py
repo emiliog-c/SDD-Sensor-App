@@ -9,6 +9,7 @@ import pandas as pd # pandas library for manipulating data
 from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data as required by pandas
 import dash
 import dash_auth
+from aboutApp import aboutApp
 from app_passwords import VALID_USERNAME_PASSWORD_PAIRS # note: the app_passwords.py file imported in the line above
 # just contains something like this:
 # # Keep this out of git and GitHub!
@@ -225,7 +226,7 @@ def homepageSelector(latestSensorData):
     df2 = latestSensorData.set_index('sensorID', drop = False)
     j = []
     for sID in range(1,5):
-        k = [html.Div(className='container', children=[    
+        k = [dbc.Card(body = True, children=[    
                 dbc.Row([
                     dbc.Col([
                         html.H4('Sensor {:d}'.format(sID)),
@@ -287,7 +288,7 @@ def homepageSelector(latestSensorData):
                      ), 
                 ])])]
         j.extend(k)
-    l= html.Div(className='container', children=[
+    l= html.Div(children=[
         dbc.Card(
             dbc.CardBody(
             [
@@ -298,26 +299,7 @@ def homepageSelector(latestSensorData):
     return l
     
 
-def aboutApp():
-    a = html.Div(children=[dcc.Markdown('''
-### title
 
-this is markdown, placeholder
-      * item1
-      * item2htmp
-      '''
-            )])
-    a = dbc.Card(
-            dbc.CardBody(
-                dcc.Markdown('''
-### title
-
-this is markdown, placeholder
-      * item1
-      * item2htmp ''')))
-                    
-    return a
-        
 
 
 def getSensorInfo():

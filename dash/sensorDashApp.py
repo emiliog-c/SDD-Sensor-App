@@ -125,7 +125,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 application = app.server
 
 #setup basic authentication as per https://dash.plot.ly/authentication
-# doesn't work on Windows, so skip it if running Windows
+# doesn't work on Windows so skip it if running Windows
 if platform.system() != 'Windows':
     auth = dash_auth.BasicAuth(
         app,
@@ -262,7 +262,9 @@ def dataTableDisplay(sensorData):
 	    # filter_action="native",
             # filtering=True,
     	    # sorting=True,
+    	    sort_action='native',
 	    # sorting_type="multi",
+	    sorting_mode="multi",
 	    row_selectable="multi",
 	    row_deletable=False,
 	    selected_rows=[],

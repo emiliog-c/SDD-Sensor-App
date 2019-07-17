@@ -264,7 +264,7 @@ def dataTableDisplay(sensorData):
     	    # sorting=True,
     	    sort_action='native',
 	    # sorting_type="multi",
-	    sorting_mode="multi",
+	    sort_mode="multi",
 	    row_selectable="multi",
 	    row_deletable=False,
 	    selected_rows=[],

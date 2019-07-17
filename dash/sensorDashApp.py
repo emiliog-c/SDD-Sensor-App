@@ -28,6 +28,7 @@ import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output
+from dash_table.Format import Format, Scheme, Sign, Symbol
 import plotly.plotly as py
 import plotly.graph_objs as go
 import sys
@@ -220,7 +221,26 @@ def infoTableDisplay(sensorInfo):
         #columns=[{"name": i, "id": i} for i in sensorInfo.columns],
         columns=[{'name': 'Sensor ID', 'id': 'sensorID'},
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
-                    {'name': 'Log Info', 'id': 'info.info', 'type': 'text'}
+                    {'name': u'Temperature (˚C)', 
+                     'id': 'data.temperature',
+                     'type': 'numeric',
+                     'format': Format(precision=1, scheme=Scheme.fixed)},
+                    {'name': 'Rel. Humidity %', 
+                     'id': 'data.humidity',
+                     'type': 'numeric',
+                     'format': Format(precision=1, scheme=Scheme.fixed)},
+                    {'name': 'Air pressure', 
+                     'id': 'data.bmp180_airpressure',
+                     'type': 'numeric',
+                     'format': Format(precision=2, scheme=Scheme.fixed)},
+                    {'name': 'PM2.5', 
+                     'id': 'data.pm25',
+                     'type': 'numeric',
+                     'format': Format(precision=2, scheme=Scheme.fixed)},
+                    {'name': 'PM10', 
+                     'id': 'data.pm10',
+                      'type': 'numeric',
+                     'format': Format(precision=2, scheme=Scheme.fixed)},
                 ],
         style_cell_conditional=[
             {
@@ -229,18 +249,30 @@ def infoTableDisplay(sensorInfo):
             } for c in ['info.info', 'timestamp', 'sensorID']
         ],
         data=sensorInfo.to_dict('records'),
+        style_as_list_view=True,
+        style_cell={'padding': '5px'},
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(248, 248, 248)'
+            }
+        ],
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold'
+        },
 	    editable=False,
-	filter_action='native',		     
+	    filter_action='native',		     
         # filtering=True,
     	sort_action='native',
 	sort_mode="multi",
 	row_selectable=False,
 	row_deletable=False,
 	selected_rows=[],
-	    # pagination_mode="fe",
-	    # pagination_settings={
-            #     "current_page": 0,
-	    #	    "page_size": 50}
+	# pagination_mode="fe",
+	# pagination_settings={
+        #     "current_page": 0,
+	#	    "page_size": 50}        
         )
         ])
     return(x)
@@ -257,23 +289,34 @@ def dataTableDisplay(sensorData):
                     {'name': 'PM2.5', 'id': 'data.pm25'},
                     {'name': 'PM10', 'id': 'data.pm10'}
                 ],
-            data=sensorData.to_dict('records'),
-	    editable=False,
-	    filter_action='native',
-            # filtering=True,
-    	    # sorting=True,
-    	    sort_action='native',
-	    # sorting_type="multi",
-	    sort_mode="multi",
-	    row_selectable="multi",
-	    row_deletable=False,
-	    selected_rows=[],
-	    # pagination_mode="fe",
-	    # pagination_settings={
-            #     "current_page": 0,
-	    #	    "page_size": 50}
-            )
-            ])
+        data=sensorData.to_dict('records'),
+        style_as_list_view=True,
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(248, 248, 248)'
+            }
+        ],
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold'
+        },
+	editable=False,
+	filter_action='native',
+        # filtering=True,
+    	# sorting=True,
+    	sort_action='native',
+	# sorting_type="multi",
+	sort_mode="multi",
+	row_selectable=False,
+	row_deletable=False,
+	selected_rows=[],
+	# pagination_mode="fe",
+	# pagination_settings={
+        #     "current_page": 0,
+	#	    "page_size": 50}
+        )
+        ])
     return(x)
 
 def homepageSelector(latestSensorData):
@@ -352,10 +395,6 @@ def homepageSelector(latestSensorData):
         ])
     return l
     
-
-
-
-
 def getSensorInfo():
     # do the same for the sensors info table
     sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))

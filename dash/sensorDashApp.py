@@ -106,7 +106,7 @@ def getSensorInfo():
     while response.get('LastEvaluatedKey'):
         response = infoTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
-    sensorInfo = pd.DataFrame(json_normalize(json.loads(data['Items'])))
+    sensorInfo = pd.DataFrame(json_normalize(json.loads(data)))
     # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
     sensorInfo.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True) 
     return(sensorInfo)
@@ -391,10 +391,10 @@ def homepageSelector(latestSensorData):
         ])
     return l
     
-def getSensorInfo():
-    # do the same for the sensors info table
-    sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
-    return(sensorInfo)
+# def getSensorInfo():
+#     # do the same for the sensors info table
+#     sensorInfo = pd.DataFrame(json_normalize(json.loads(infoTable.scan()['Items'])))
+#     return(sensorInfo)
 
 app.layout = html.Div(className='container', children=[
     dbc.Card(

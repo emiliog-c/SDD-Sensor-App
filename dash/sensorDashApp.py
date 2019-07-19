@@ -88,7 +88,9 @@ def getSensorData():
         # also convert the SensorID column from string into integer
         sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
         # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
-        sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True) 
+        sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
+        sensorData['data.bmp180_airpressure'] = sensorData['data.bmp180_airpressure']/100.0
+
     return sensorData
 
 sensorData = getSensorData()
@@ -205,8 +207,9 @@ def make_graph(sensorData, column, gtitle, y_label):
 	return(fig)
 
 def SensorGraph(sensorData):
+    graphstyle = {'width': '70vw', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
     graphdiv = html.Div(children=[
-            dbc.Card(body = True, children=[dcc.Graph(id='temp-graph',figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius'))]),
+            #dbc.Card(body = True, children=[dcc.Graph(id='temp-graph',style=graphstyle, figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius'))]),
             dbc.Card(body = True, children=[dcc.Graph(id='bmp180-temp-graph', figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius'))]),
             dbc.Card(body = True, children=[dcc.Graph(id='humidity-graph', figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity'))]),
             dbc.Card(body = True, children=[dcc.Graph(id='bmp180-airpress-graph', figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'Pascals'))]),
@@ -233,29 +236,23 @@ def infoTableDisplay(sensorInfo):
         data=sensorInfo.to_dict('records'),
         style_as_list_view=True,
         style_cell={'padding': '5px'},
-        style_data_conditional=[
-            {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(248, 248, 248)'
-            }
-        ],
         style_header={
             'backgroundColor': 'rgb(230, 230, 230)',
             'fontWeight': 'bold'
         },
-	    editable=False,
-	    filter_action='native',		     
-        # filtering=True,
-    	sort_action='native',
-	sort_mode="multi",
-	row_selectable=False,
-	row_deletable=False,
-	selected_rows=[],
-	# pagination_mode="fe",
-	# pagination_settings={
-        #     "current_page": 0,
-	#	    "page_size": 50}        
-        )
+                editable=False,
+                filter_action='native',		     
+                # filtering=True,
+                sort_action='native',
+                #sort_mode="multi",
+                row_selectable="multi",
+                row_deletable=False,
+                selected_rows=[],
+                # pagination_mode="fe",
+                # pagination_settings={
+                #     "current_page": 0,
+                #	    "page_size": 50}         
+                ),
         ])
     return(x)
     
@@ -304,7 +301,7 @@ def dataTableDisplay(sensorData):
     	sort_action='native',
 	# sorting_type="multi",
 	sort_mode="multi",
-	row_selectable=False,
+	row_selectable="multi",
 	row_deletable=False,
 	selected_rows=[],
 	# pagination_mode="fe",
@@ -315,7 +312,7 @@ def dataTableDisplay(sensorData):
         ])
     return(x)
 
-def homepageSelector(latestSensorData):
+def homepageDisplay(latestSensorData):
     df2 = latestSensorData.set_index('sensorID', drop = False)
     j = []
     for sID in range(1,5):
@@ -331,7 +328,7 @@ def homepageSelector(latestSensorData):
                         daq.Thermometer(
                         min=-20,
                         max=50,
-                        value = df2.at[sID,'data.temperature'],
+                        value = df2.at[sID,'data.bmp180_temperature'],
                         showCurrentValue=True,
                         units="C"),
                         width = "auto",
@@ -350,11 +347,11 @@ def homepageSelector(latestSensorData):
                     dbc.Col(
                         daq.Gauge(
                         showCurrentValue=True,
-                        units="Air Pressure",
+                        units="Hectopascals (hPa)",
                         value=df2.at[sID,'data.bmp180_airpressure'],
-                        label='Default',
-                        max=110000,
-                        min=80000,
+                        label='Barometer',
+                        max=1100,
+                        min=1000,
                         size=200,),
                         width = "auto",
                     ),
@@ -429,7 +426,7 @@ def updateData(n_clicks):
         # updating last obtained data
         maxTimestamps = sensorData.groupby('sensorID')['timestamp'].max().reset_index() 
         latestSensorData = pd.merge(sensorData, maxTimestamps, how='inner') 
-        hp = homepageSelector(latestSensorData)
+        hp = homepageDisplay(latestSensorData)
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
         dlt = dataTableDisplay(sensorData)

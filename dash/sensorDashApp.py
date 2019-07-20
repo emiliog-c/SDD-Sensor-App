@@ -10,7 +10,8 @@ from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data
 import dash
 import dash_auth
 from aboutApp import aboutApp
-from app_passwords import VALID_USERNAME_PASSWORD_PAIRS # note: the app_passwords.py file imported in the line above
+from app_passwords import VALID_USERNAME_PASSWORD_PAIRS 
+# note: the app_passwords.py file imported in the line above
 # just contains something like this:
 # # Keep this out of git and GitHub!
 # VALID_USERNAME_PASSWORD_PAIRS = {
@@ -208,13 +209,26 @@ def make_graph(sensorData, column, gtitle, y_label):
 
 def SensorGraph(sensorData):
     graphstyle = {'width': '70vw', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
-    graphdiv = html.Div(children=[
-            #dbc.Card(body = True, children=[dcc.Graph(id='temp-graph',style=graphstyle, figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius'))]),
-            dbc.Card(body = True, children=[dcc.Graph(id='bmp180-temp-graph', figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius'))]),
-            dbc.Card(body = True, children=[dcc.Graph(id='humidity-graph', figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity'))]),
-            dbc.Card(body = True, children=[dcc.Graph(id='bmp180-airpress-graph', figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'Pascals'))]),
-            dbc.Card(body = True, children=[dcc.Graph(id='pm25-graph', figure=make_graph(sensorData, 'data.pm25', 'PM 2.5', 'micrograms per cubic metre'))]),
-            dbc.Card(body = True, children=[dcc.Graph(id='pm10-graph', figure=make_graph(sensorData, 'data.pm10', 'PM 10', 'micrograms per cubic metre'))]),
+    graphdiv = dbc.Card(body=True, children=[
+            # don't need two temperature graphs
+            # dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            # 		children=[dcc.Graph(id='temp-graph', style=graphstyle, 
+            # 		figure=make_graph(sensorData, 'data.temperature', 'Temperature', 'degrees Celcius'))]),
+            dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            		children=[dcc.Graph(id='bmp180-temp-graph', style=graphstyle, 
+            		figure=make_graph(sensorData, 'data.bmp180_temperature', 'Temperature (BMP180 sensor)', 'degrees Celcius'))]),
+            dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            		children=[dcc.Graph(id='humidity-graph', style=graphstyle, 
+            		figure=make_graph(sensorData, 'data.humidity', 'Humidity', '% relative humidity'))]),
+            dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            		children=[dcc.Graph(id='bmp180-airpress-graph', style=graphstyle, 
+            		figure=make_graph(sensorData, 'data.bmp180_airpressure', 'Air pressure', 'hectoPascals'))]),
+            dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            		children=[dcc.Graph(id='pm25-graph', style=graphstyle, 
+            		figure=make_graph(sensorData, 'data.pm25', 'PM 2.5', 'micrograms per cubic metre'))]),
+            dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
+            		children=[dcc.Graph(id='pm10-graph', style=graphstyle, 
+            		figure=make_graph(sensorData, 'data.pm10', 'PM 10', 'micrograms per cubic metre'))]),
             ])
     return graphdiv
 

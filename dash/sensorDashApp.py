@@ -10,6 +10,7 @@ from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data
 import dash
 import dash_auth
 from aboutApp import aboutApp
+from helpApp import helpApp
 from app_passwords import VALID_USERNAME_PASSWORD_PAIRS 
 # note: the app_passwords.py file imported in the line above
 # just contains something like this:
@@ -111,7 +112,10 @@ def getSensorInfo():
         data.extend(response['Items'])
     sensorInfo = pd.DataFrame(json_normalize(json.loads(data)))
     # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
-    sensorInfo.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True) 
+    sensorInfo.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
+    # also convert the SensorID column from string into integer
+    sensorInfo['sensorID'] = sensorInfo['sensorID'].astype('int64')
+    
     return(sensorInfo)
 
 # print out the dataframe
@@ -233,10 +237,10 @@ def SensorGraph(sensorData):
     return graphdiv
 
 def infoTableDisplay(sensorInfo):
-    x = html.Div(children=[	
+    x = dbc.Card(body=True, className='mx-auto', children=[	
         dash_table.DataTable(id='sensor-info-table', 
         #columns=[{"name": i, "id": i} for i in sensorInfo.columns],
-        columns=[{'name': 'Sensor ID', 'id': 'sensorID'},
+        columns=[{'name': 'Sensor ID', 'id': 'sensorID','type': 'numeric'},
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
                     {'name': 'Log message', 'id': 'info.info',
                      'type': 'text'}
@@ -271,9 +275,9 @@ def infoTableDisplay(sensorInfo):
     return(x)
     
 def dataTableDisplay(sensorData):
-    x = html.Div(children=[	
+    x = dbc.Card(body=True, className='mx-auto', children=[	
         dash_table.DataTable(id='sensor-data-table', 
-        columns=[{'name': 'Sensor ID', 'id': 'sensorID'},
+        columns=[{'name': 'Sensor ID', 'id': 'sensorID', 'type': 'numeric'},
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
                     {'name': u'Temperature (˚C)', 
                      'id': 'data.temperature',
@@ -283,7 +287,7 @@ def dataTableDisplay(sensorData):
                      'id': 'data.humidity',
                      'type': 'numeric',
                      'format': Format(precision=1, scheme=Scheme.fixed)},
-                    {'name': 'Air pressure', 
+                    {'name': 'Air pressure (hPa)', 
                      'id': 'data.bmp180_airpressure',
                      'type': 'numeric',
                      'format': Format(precision=2, scheme=Scheme.fixed)},
@@ -330,7 +334,7 @@ def homepageDisplay(latestSensorData):
     df2 = latestSensorData.set_index('sensorID', drop = False)
     j = []
     for sID in range(1,5):
-        k = [dbc.Card(body = True, children=[    
+        k = [dbc.Card(body = True, color='primary', outline=True, className='mt-2', children=[    
                 dbc.Row([
                     dbc.Col([
                         html.H4('Sensor {:d}'.format(sID)),
@@ -340,9 +344,10 @@ def homepageDisplay(latestSensorData):
                     ),
                     dbc.Col(
                         daq.Thermometer(
-                        min=-20,
+                        min=-10,
                         max=50,
                         value = df2.at[sID,'data.bmp180_temperature'],
+                        scale={'start': -10, 'interval': 5},
                         showCurrentValue=True,
                         units="C"),
                         width = "auto",
@@ -394,10 +399,7 @@ def homepageDisplay(latestSensorData):
         j.extend(k)
     l= html.Div(children=[
         dbc.Card(
-            dbc.CardBody(
-            [
-                 html.Div(children = j)]
-            )
+            dbc.CardBody(j)
             )
         ])
     return l
@@ -408,22 +410,21 @@ def homepageDisplay(latestSensorData):
 #     return(sensorInfo)
 
 app.layout = html.Div(className='container', children=[
-    dbc.Card(
-        dbc.CardBody(
-            [
+    dbc.Card(body=True, color='primary', inverse=True, className='m-2', children=[
                 html.Div(id='header-div', children=[
                     dbc.Row([
-                        dbc.Col(html.H1('SDD Sensor App Dashboard'),width=6, align='center'),
-                        dbc.Col(dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="circle"), width=5, align='center'),
-                        dbc.Col(dbc.Button('Refresh', id='refresh-button', className = 'mr-1', color = "primary"), width=1, align='center'),
+                        dbc.Col(html.H1('SDD Sensor App Dashboard'),width=7, align='center'),
+                        dbc.Col(dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="dot"), width=3, align='center'),
+                        dbc.Col(dbc.Button('Refresh', id='refresh-button', className = 'mr-1', color = "success", size='sm'), width=2, align='center'),
                     ])
                 ]),
-            ])),
+            ]),
     dbc.Tabs(id="htmltabs", children=[
         dbc.Tab(id='Homepage', label='Homepage'),
         dbc.Tab(id = 'time-series-tab', label='Graph View'),
         dbc.Tab(id = 'data-table-tab', label='Data Table View'),
         dbc.Tab(id = 'log-messages-tab', label='Log View'),
+        dbc.Tab(id = 'help-tab', label='Help', children=helpApp()),
         dbc.Tab(id = 'about-tab', label='About', children=aboutApp())
     ])])
 

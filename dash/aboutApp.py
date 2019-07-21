@@ -23,7 +23,7 @@ def aboutApp():
     sensorDiagram = dbc.Card([
                 dbc.CardImg(src="/assets/sensorDiagram.png", top=True),
                 dbc.CardBody(
-                    html.P("Diagram of how the sensor works.", className="card-text"))
+                    html.P("Diagram of how the overall system works.", className="card-text"))
         	 ])
 
     sensorPhotos = dbc.Row([dbc.Col(photo1, width="4"),
@@ -52,6 +52,7 @@ def aboutApp():
                 		"All code regarding the creation of this project is written in Python, and the libraries Dash, plotly, dash-Bootstrap, the sensors' respective libraries, Amazon IoT libraries, Pandas, Boto3 and DynamoDB.",
                 		className="card-text"),
                 sDiagram,
+                html.P(),
             	sensorPhotos,
         		])          
     return a

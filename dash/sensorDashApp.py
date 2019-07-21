@@ -433,7 +433,7 @@ def updateData(n_clicks):
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 
 
 

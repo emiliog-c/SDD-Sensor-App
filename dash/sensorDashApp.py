@@ -239,7 +239,6 @@ def SensorGraph(sensorData):
 def infoTableDisplay(sensorInfo):
     x = dbc.Card(body=True, className='mx-auto', children=[	
         dash_table.DataTable(id='sensor-info-table', 
-        #columns=[{"name": i, "id": i} for i in sensorInfo.columns],
         columns=[{'name': 'Sensor ID', 'id': 'sensorID','type': 'numeric'},
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
                     {'name': 'Log message', 'id': 'info.info',
@@ -258,19 +257,15 @@ def infoTableDisplay(sensorInfo):
             'backgroundColor': 'rgb(230, 230, 230)',
             'fontWeight': 'bold'
         },
-                editable=False,
-                filter_action='native',		     
-                # filtering=True,
-                sort_action='native',
-                #sort_mode="multi",
-                row_selectable="multi",
-                row_deletable=False,
-                selected_rows=[],
-                # pagination_mode="fe",
-                # pagination_settings={
-                #     "current_page": 0,
-                #	    "page_size": 50}         
-                ),
+        editable=False,
+        filter_action='native',		     
+        sort_action='native',
+        sort_mode="multi",
+        row_selectable=False,
+        row_deletable=False,
+        selected_rows=[],
+        page_size = 50         
+        ),
         ])
     return(x)
     
@@ -314,20 +309,14 @@ def dataTableDisplay(sensorData):
         },
 	editable=False,
 	filter_action='native',
-        # filtering=True,
-    	# sorting=True,
-    	sort_action='native',
-	# sorting_type="multi",
+    sort_action='native',
 	sort_mode="multi",
-	row_selectable="multi",
+	row_selectable=False,
 	row_deletable=False,
 	selected_rows=[],
-	# pagination_mode="fe",
-	# pagination_settings={
-        #     "current_page": 0,
-	#	    "page_size": 50}
-        )
-        ])
+	page_size = 50,
+    )
+    ])
     return(x)
 
 def homepageDisplay(latestSensorData):

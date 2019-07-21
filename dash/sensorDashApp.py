@@ -1,3 +1,15 @@
+"""
+name: sensorDashApp.py
+author: Emilio Guevarra Churches
+date: July 2019
+license: see LICENSE file
+description: this is the main web app file. it can be run on your laptop or on a web server.
+"""
+
+##################################################
+# set-up section
+##################################################
+
 import boto3 # Amazon AWS SDK library for access DynamoDB database
 from boto3.dynamodb.conditions import Key, Attr # used in filtering queries
 import json # library to deal with JSON data
@@ -7,11 +19,11 @@ from decimal import Decimal # used to deal with DynamoDB representations of deci
 from dynamodb_json import json_util as json # used to convert DynamoDB JSON to normal JSON
 import pandas as pd # pandas library for manipulating data
 from pandas.io.json import json_normalize # un-nests (flattens) nested JSON data as required by pandas
-import dash
-import dash_auth
-from aboutApp import aboutApp
-from helpApp import helpApp
-from app_passwords import VALID_USERNAME_PASSWORD_PAIRS 
+import dash # main dash framework for dashboard web app
+import dash_auth # dash authentication library
+from aboutApp import aboutApp # function to build About tab content
+from helpApp import helpApp # function to build help tab content
+from app_passwords import VALID_USERNAME_PASSWORD_PAIRS # usernames and passwords
 # note: the app_passwords.py file imported in the line above
 # just contains something like this:
 # # Keep this out of git and GitHub!
@@ -23,20 +35,23 @@ from app_passwords import VALID_USERNAME_PASSWORD_PAIRS
 #     'sensor4': 'XXXXX',
 # }
 # where XXXX is the password for each user
-import dash_table
-import dash_daq as daq
-import pandas as pd
-import dash_core_components as dcc
-import dash_bootstrap_components as dbc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-from dash_table.Format import Format, Scheme, Sign, Symbol
-import plotly.plotly as py
+import dash_table # library to create tables in dash
+import dash_daq as daq # library of extra dash widgets like thermometer and guages
+import dash_core_components as dcc # core dash components
+import dash_bootstrap_components as dbc # Bootstrap libraries as extensions to dash
+import dash_html_components as html # dash HTML components
+from dash.dependencies import Input, Output # needed for callback from Refresh button
+from dash_table.Format import Format, Scheme, Sign, Symbol # used to format the tables
+import plotly.plotly as py # main graph library used in dash
 import plotly.graph_objs as go
 import sys
-import platform
+import platform # needed to work out which operating system
 
-# create an AWS session, references the .aws/credentials file in home directory
+##################################################
+# get data from DynamoDB database section
+##################################################
+
+# create an AWS session which references the .aws/credentials file in home directory
 # the credentials file has a section called SDD-Sensors containing the AWS account 
 # identifier and secrete key (passowrd) for it to access the DynamoDB database
 if platform.system() == 'Windows' or platform.system() == 'Darwin':
@@ -51,9 +66,7 @@ dynamodb = session.resource('dynamodb', region_name='ap-southeast-2',)
 dataTable = dynamodb.Table('SDD-Sensors-Data')
 infoTable = dynamodb.Table('SDD-Sensors-Info')
 
-# print(dataTable.table_name)
-
-# extract all the data into an in-memory Pandas dataframe
+# make a function to extract all the data into an in-memory Pandas dataframe
 # dataTable.scan() scans and returns JSON containing every record in the database 
 # in a JSON filed called "Items". We extract that field and process it with the 
 # json.loads() method from the dynamodb_json library. This converts the DynamoDB format
@@ -66,35 +79,36 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 def getSensorData(): 
     response = dataTable.scan()
     data = response['Items']
+    # dynamoDb sends the data as pages so we need to loop until no more pages
+    # this was just copied from the DynamoDb tutorial on AWS
     while response.get('LastEvaluatedKey'):
         response = dataTable.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
     
-        # load data into a pandas DataFrame via the json.loads() function
-        # that converts DynamoDB JSON into standard JSON (see https://github.com/Alonreznik/dynamodb-json )
-        # and via the json_normalize() function in pandas that converts nested JSON data into a flat table form
-        # required by pandas
-        sensorData = pd.DataFrame(json_normalize(json.loads(data)))
+    # load data into a pandas DataFrame via the json.loads() function
+    # that converts DynamoDB JSON into standard JSON (see https://github.com/Alonreznik/dynamodb-json )
+    # and via the json_normalize() function in pandas that converts nested JSON data into a flat table form
+    # required by pandas
+    sensorData = pd.DataFrame(json_normalize(json.loads(data)))
 
-        # first bit of tidying up is to delete the additional sensor ID column
-        sensorData = sensorData.drop(columns="data.sensor")
+    # first bit of tidying up is to delete the additional sensor ID column
+    sensorData = sensorData.drop(columns="data.sensor")
 
-        # now we need to convert the timestamp columns from strings into python datetime format
-        # using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
-        # can be referenced just using square brackets.
-        sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
-        sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
-        # also convert the SensorID column from string into integer
-        sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
-        # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
-        sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
-        sensorData['data.bmp180_airpressure'] = sensorData['data.bmp180_airpressure']/100.0
+    # now we need to convert the timestamp columns from strings into python datetime format
+    # using the built-in Pandas to_datetime() method on those columns. In Pandas, columns
+    # can be referenced just by using square brackets.
+    sensorData['data.timestamp'] = pd.to_datetime(sensorData['data.timestamp'])
+    sensorData['timestamp'] = pd.to_datetime(sensorData['timestamp'])
+    # also convert the SensorID column from string into integer
+    sensorData['sensorID'] = sensorData['sensorID'].astype('int64')
+    # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
+    sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
+    sensorData['data.bmp180_airpressure'] = sensorData['data.bmp180_airpressure']/100.0
 
-    return sensorData
+    return(sensorData)
 
+# debug code
 # sensorData = getSensorData()
-
-
 # print out the dataframe
 # print(sensorData)
 # show info about the dataframe
@@ -114,21 +128,24 @@ def getSensorInfo():
     sensorInfo['sensorID'] = sensorInfo['sensorID'].astype('int64')    
     return(sensorInfo)
 
+# debug code
 # print out the dataframe
 # print(sensorInfo)
 # show info about the dataframe
 # print(sensorInfo.info())
-
 # print(sensorData.groupby('sensorID').count())
-
 # sys.exit()
 
+##################################################
+# set up the dash app
+##################################################
+# most of this code is based on the tutorials for the Dash library
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # this is needed to run properly on AWS ElasticBeanstalk
 application = app.server
 
-#setup basic authentication as per https://dash.plot.ly/authentication
+#set up basic authentication as per https://dash.plot.ly/authentication
 # doesn't work on Windows so skip it if running Windows
 if platform.system() != 'Windows':
     auth = dash_auth.BasicAuth(

@@ -1,6 +1,25 @@
+"""
+name: helpApp.py
+author: Emilio Guevarra Churches
+date: July 2019
+license: see LICENSE file
+description: this is the code that creates the help tab in the app. It is imported by the main program.
+"""
+
+##################################################
+# set-up section
+##################################################
+# import the dash libraries needed
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
+
+##################################################
+# markdown text section
+##################################################
+# this is the text for the help tab in markdown format
+# doing it like this is much easier than assembling it
+# bit by bit as I did in the aboutApp.py file
 
 markDownText = '''
 ### How to use this web app
@@ -86,8 +105,11 @@ Every few months it may be necessary to delete older data to keep the data size 
 **Resolution**: Inspect your policies in the security section of the Amazon Web Services IoT, ensuring that your policies are set. Inspect your boot files, ensuring that the certificate numbers are properly placed.
 '''
 
+##################################################
+# function to create the help tab content
+##################################################
+# this gets called in the main program to create the content of the help tab
 def helpApp():
-
 	a = dbc.Card(body = True, children=[
                 	dcc.Markdown([markDownText],className="card-text"),
         		])          

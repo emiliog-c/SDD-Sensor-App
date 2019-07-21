@@ -1,3 +1,5 @@
+# this is just test code, it is not part of the Sensor node
+
 """
     Wrapper classes for the Honeywell HPMA115S0.
     Florentin Bulot
@@ -170,7 +172,8 @@ class Honeywell(object):
                     return HoneywellReading(recv) # convert to reading object
             #If the character isn't what we are expecting loop until timeout
         raise HoneywellException("No message received")
-        
+
+# test the Honeywell sensor
 print("Initialising...")
 hw = Honeywell()
 #print("Wait 15 seconds...")

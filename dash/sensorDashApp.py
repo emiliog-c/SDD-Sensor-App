@@ -63,9 +63,6 @@ infoTable = dynamodb.Table('SDD-Sensors-Info')
 # process the flattened JSON data with the Pandas DataFrame() methods which
 # returns a Pandas dataframe object.
 
-
-n_clicks = 0
-
 def getSensorData(): 
     response = dataTable.scan()
     data = response['Items']
@@ -95,13 +92,13 @@ def getSensorData():
 
     return sensorData
 
-sensorData = getSensorData()
+# sensorData = getSensorData()
 
 
 # print out the dataframe
 # print(sensorData)
 # show info about the dataframe
-print(sensorData.info())
+# print(sensorData.info())
 
 # do the same for the sensors info table
 def getSensorInfo():
@@ -114,8 +111,7 @@ def getSensorInfo():
     # sort data set according to this https://www.geeksforgeeks.org/python-pandas-dataframe-sort_values-set-2/
     sensorInfo.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
     # also convert the SensorID column from string into integer
-    sensorInfo['sensorID'] = sensorInfo['sensorID'].astype('int64')
-    
+    sensorInfo['sensorID'] = sensorInfo['sensorID'].astype('int64')    
     return(sensorInfo)
 
 # print out the dataframe
@@ -123,7 +119,7 @@ def getSensorInfo():
 # show info about the dataframe
 # print(sensorInfo.info())
 
-print(sensorData.groupby('sensorID').count())
+# print(sensorData.groupby('sensorID').count())
 
 # sys.exit()
 
@@ -437,7 +433,7 @@ def updateData(n_clicks):
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 
 

@@ -145,30 +145,47 @@ The RPi node connects to the AWS IoT Services using the MQTT protocol (https://e
 
 ## Website setup
 * From your cmd, type the command pip3 install x
-'''
+
+```
 x = boto3
     dynamodb-json
     pandas
-    dash 
-''' 
+    dash
+
+```
 
 * Enter the sensorDataApp from the SDD-Sensor-App directory with Python Idle or Notepad++
 * Locate the lines 64, 66 and 67.
+
+```
+# set up a handle to the database
+dynamodb = session.resource('dynamodb', region_name='ap-southeast-2',)
+# set up handles for the two tables: one for sensor data, one for information messages from the sensors
+dataTable = dynamodb.Table('SDD-Sensors-Data')
+infoTable = dynamodb.Table('SDD-Sensors-Info')
+```
+
 * Change your region name to your respective region
 * Insert your DynamoDB data table and info table names in line 66 and 67 respectively.
 * Run the code from command line
-'''
-
+```
 cd:\Users\(username)\Documents\GitHub\SDD-Sensor-App\dash
 
 python sensorDashApp.py
 
-'''
+```
 * If it is running correctly, wait a bit until this block of code pops up
 
-'''
-s
-'''
+```
+Debugger PIN: 101-395-991
+ * Serving Flask app "sensorDashApp" (lazy loading)
+ * Environment: production
+   WARNING: This is a development server. Do not use it in a production deployment.
+   Use a production WSGI server instead.
+ * Debug mode: on
+Running on http://127.0.0.1:8050/
+Debugger PIN: 959-360-145
+```
 * Copy the line "Running on _______ " into your browser
 * Wait until site fully loads up
 
@@ -182,29 +199,5 @@ s
 
 
   
-
-## Older stuff (remove)
-
-Wires on the Honeywell Particle Sensor
-Red = 5V
-Black = GND
-Yellow = Recieve
-Blue = Transmit
-
-Red Must be wired into 5V
-Black Muste be wired into GND (ground)
-Yellow Must be wired into Transmit
-Blue must be wired to recieve
-
-Red is soldered onto Pin 2 (5V)
-Black is soldered onto Pin 6 (GND)
-Yellow is soldered onto Pin 8 (Transmit)
-Blue is soldered onto Pin 10 (Recieve)
-
-Wires on the Adafruit DHT22 
-
-Pin 1 = 3.3 Volt (Pin 1)
-Pin 2 = GPIO4 (Pin 7)
-Pin 3 = GND (Pin 8)
 
 

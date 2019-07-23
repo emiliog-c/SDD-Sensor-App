@@ -152,6 +152,26 @@ x = boto3
     dash 
 ''' 
 
+* Enter the sensorDataApp from the SDD-Sensor-App directory with Python Idle or Notepad++
+* Locate the lines 64, 66 and 67.
+* Change your region name to your respective region
+* Insert your DynamoDB data table and info table names in line 66 and 67 respectively.
+* Run the code from command line
+'''
+
+cd:\Users\(username)\Documents\GitHub\SDD-Sensor-App\dash
+
+python sensorDashApp.py
+
+'''
+* If it is running correctly, wait a bit until this block of code pops up
+
+'''
+s
+'''
+* Copy the line "Running on _______ " into your browser
+* Wait until site fully loads up
+
 
 
 

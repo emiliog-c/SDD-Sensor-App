@@ -105,10 +105,11 @@ def getSensorData():
     sensorData.sort_values(["timestamp", "sensorID"], axis=0, ascending=[False,True], inplace=True)
     # converts the air pressure into hPa
     sensorData['data.bmp180_airpressure'] = sensorData['data.bmp180_airpressure']/100.0
-
+    # return the pandas dataframe
     return(sensorData)
 
-#Functions the same as getSensorData, but reads for the info table portion of DynamoDB to supply the info table in dash
+# this functions the same as getSensorData, but reads from the SDD-Sensors-Info table in DynamoDB to
+# supply the sensorInfo dataframe table in dash
 def getSensorInfo():
     response = infoTable.scan()
     data = response['Items']
@@ -127,6 +128,8 @@ def getSensorInfo():
 # set up the dash app
 ##################################################
 # most of this code is based on the tutorials for the Dash library
+
+# the stylesheets are needed by the Dash Bootstrap Components library
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # this is needed to run properly on AWS ElasticBeanstalk
@@ -141,7 +144,11 @@ if platform.system() != 'Windows':
     )
 
 ##################################################
-# Sets out all graphs for later use in different functions. If needing to change the graph, change it here.
+# Function to make the specifications in dictionaries for all the graphs 
+# for later use in different functions.
+# Code based on this blog post by chriddyp who wrote the dash library: 
+# https://community.plot.ly/t/ploting-time-series-data/5265
+# If you needing to change the graphs, change them here.
 ##################################################
 def make_graph(sensorData, column, gtitle, y_label):
 	sensor1 = dict(
@@ -216,11 +223,14 @@ def make_graph(sensorData, column, gtitle, y_label):
     
 
 ##################################################
-# creates tables using the data from the DynamoDB Table. Uses the function above this function to work.
+# creates graphs using the data from the DynamoDB Table. 
+# Uses the graph specifications created by the make_graph() function above.
 ##################################################
 def SensorGraph(sensorData):
+    # style dictionary for each graph
     graphstyle = {'width': '70vw', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
-    #cards are part of bootstrap, makes laying out extremely easily. The card also creates a border around each graph.
+    # cards are part of bootstrap, makes laying out extremely easily. The card also creates a border around each graph.
+    # Inside each card the graph is created by the dash Graph() function that makes a Plotly graph
     graphdiv = dbc.Card(body=True, children=[
             dbc.Card(body = True, color='primary', outline=True, className='mt-2', 
             		children=[dcc.Graph(id='bmp180-temp-graph', style=graphstyle, 
@@ -241,24 +251,32 @@ def SensorGraph(sensorData):
     return graphdiv
 
 ##################################################
-# creates a table that extracts info from the info table (i.e. status of the sensors) of the DynamoDB table. Uses dash to create the table.
+# creates a table that presents the info from the sensorInfo pandas dataframe
+# (i.e. status of the sensors) which was loaded from the DynamoDB table. 
+# Uses Dash DataTable library to create the table.
 ##################################################
 def infoTableDisplay(sensorInfo):
+    # mx-auto class supposed to centre the table on the page, but doesn't
+    # seem to work when deployed to web server no idea why
     x = dbc.Card(body=True, className='mx-auto', children=[	
         dash_table.DataTable(id='sensor-info-table', 
-        #Change the name value if you want to change the name of the table column
+        # Change the name value if you want to change the header of the column shown
         columns=[{'name': 'Sensor ID', 'id': 'sensorID','type': 'numeric'},
                     {'name': 'Timestamp', 'id': 'timestamp', 'type': 'datetime'},
                     {'name': 'Log message', 'id': 'info.info',
                      'type': 'text'}
 		],
+        # this makes the rows striped for easy reading, cribbed from Dash docs
         style_cell_conditional=[
             {
                 'if': {'column_id': c},
                 'textAlign': 'left'
             } for c in ['info.info', 'timestamp', 'sensorID']
         ],
+        # needed to convert pandas data frame into format needed by Dash Datatable
+	# as per the docs
         data=sensorInfo.to_dict('records'),
+        # the rest of these are settings for the table as per the docs
         style_as_list_view=True,
         style_cell={'padding': '5px'},
         style_header={
@@ -278,7 +296,8 @@ def infoTableDisplay(sensorInfo):
     return(x)
     
 ##################################################
-# Same as the code above, but extracts from the data table which contains data directly from the sensors.
+# Same as the code above, but presents the data frame which 
+# contains the actual data directly from the sensors.
 ##################################################
     
 def dataTableDisplay(sensorData):
@@ -322,7 +341,7 @@ def dataTableDisplay(sensorData):
         },
 	editable=False,
 	filter_action='native',
-    sort_action='native',
+        sort_action='native',
 	sort_mode="multi",
 	row_selectable=False,
 	row_deletable=False,
@@ -333,23 +352,28 @@ def dataTableDisplay(sensorData):
     return(x)
     
 ##################################################
-# set up the dash app
+# function to set up the homepage content
 ##################################################
 
 def homepageDisplay(latestSensorData):
+    # need to do this to get data for each sensor in the loop below
     df2 = latestSensorData.set_index('sensorID', drop = False)
-    j = []
-    # if more sensors are available, change the range to sensorID + 1 (i.e. if you have installed sensor 5, change the last number to 6
+    j = [] # this list holds section for each sensor
+    # now loop for each sensor node
+    # if more sensor nodes are available, change the range to sensorID + 1 
+    # (i.e. if you have installed sensor 5, change the last number to 6
     for sID in range(1,5):
         #card creates a border around the sensors gauges
         k = [dbc.Card(body = True, color='primary', outline=True, className='mt-2', children=[    
                 dbc.Row([
+		    # show the sensor number and latest timestamp for this sensor
                     dbc.Col([
                         html.H4('Sensor {:d}'.format(sID)),
                         html.Div('Latest update'),
                         html.Div(df2.at[sID, 'timestamp'])],
                         width = 2,
                     ),
+		    # show the temp in a thermometer
                     dbc.Col(
                         daq.Thermometer(
                         min=-10,
@@ -360,6 +384,7 @@ def homepageDisplay(latestSensorData):
                         units="C"),
                         width = "auto",
                     ),
+		    # show humidity in a gauge
                     dbc.Col(
                         daq.Gauge(
                         showCurrentValue=True,
@@ -371,6 +396,7 @@ def homepageDisplay(latestSensorData):
                         size=200,),
                         width = "auto",
                     ),
+		    # show air pressure in a gauge
                     dbc.Col(
                         daq.Gauge(
                         showCurrentValue=True,
@@ -382,7 +408,8 @@ def homepageDisplay(latestSensorData):
                         size=200,),
                         width = "auto",
                     ),
-                    #uses two rows to have the displays right under each other while still being in the same row as the other gauges
+                    # uses two rows to have the displays right under each other while still being
+		    # in the same row as the other gauges to show particulates reading as an LED display
                     dbc.Col([
                         dbc.Row(
                             daq.LEDDisplay(
@@ -407,39 +434,51 @@ def homepageDisplay(latestSensorData):
                 ])]
             )
             ]
-        j.extend(k)
+        j.extend(k) # add section for each sensor to overall list of sections
     l= html.Div(children=[
         dbc.Card(
-            dbc.CardBody(j)
+            dbc.CardBody(j) # put all the sections inside another outer card
             )
         ])
+    # return the overall homepage content
     return l
     
 ##################################################
-# This is the header bar that is present on all pages. This facilitates the tabs and refresh button.
+# This is the overall app layout that defines the header bar that is present on all pages. 
+# This facilitates the tabs and the data refresh button.
 ##################################################   
 app.layout = html.Div(className='container', children=[
     dbc.Card(body=True, color='primary', inverse=True, className='m-2', children=[
                 html.Div(id='header-div', children=[
                     dbc.Row([
+			# overall app heading
                         dbc.Col(html.H1('SDD Sensor App Dashboard'),width=7, align='center'),
+			# this is the pulsating data loading indicator
                         dbc.Col(dcc.Loading(id="loading-1", children=[html.Div(id="loading-output-1")], type="dot"), width=3, align='center'),
-                        #Refresh button that is located on the header. Must be put in the header as the header 
+                        # Refresh button that is located on the header. Must be put in the header as the header 
                         dbc.Col(dbc.Button('Refresh', id='refresh-button', className = 'mr-1', color = "success", size='sm'), width=2, align='center'),
                     ])
                 ]),
             ]),
+    # now under the header place all the tabs
     dbc.Tabs(id="htmltabs", children=[
         dbc.Tab(id='Homepage', label='Homepage'),
         dbc.Tab(id = 'time-series-tab', label='Graph View'),
         dbc.Tab(id = 'data-table-tab', label='Data Table View'),
         dbc.Tab(id = 'log-messages-tab', label='Log View'),
-        #These tabs rely on external .py files found in the assets directory in this folder to supply text. If you want to change the text, look in the assets directory.
-        dbc.Tab(id = 'help-tab', label='Help', children=helpApp()),
+        # These tabs rely on functions defined in external .py files 
+	# which refer to photoes etc found in the assets directory in 
+	# this folder, If you want to change the text, look in the helpApp.py and aboutApp.py file.
+        dbc.Tab(id = 'help-tab', label='Help', children=helpApp()), 
         dbc.Tab(id = 'about-tab', label='About', children=aboutApp())
     ])])
 
-#This callback sets the refresh button up for refreshing the tabs specifically.
+# This callback sets the refresh button up for refreshing the tabs specifically.
+# callbacks fire when you click the button 
+# this is explained in https://dash.plot.ly/getting-started-part-2
+# the output sections below tell each tab that involves data to reload the new data
+# The callback specification has to be immediately above the definition of the function that 
+# updates the data from the DynamoDb database
 @app.callback([Output('Homepage', 'children'),
                Output('time-series-tab', 'children'),
                Output('log-messages-tab', 'children'),
@@ -448,22 +487,28 @@ app.layout = html.Div(className='container', children=[
                ],
               [Input('refresh-button', 'n_clicks')]
               )
-#The refresh button function
 def updateData(n_clicks):
         sensorData = getSensorData()
         #Triggers when the refresh button is hit
         timeLastRefreshed = "Data was last refreshed at {:%H:%M:%S on %d %B, %Y}".format(datetime.now())
         sensorInfo = getSensorInfo()
         # updating last obtained data
-        #This also determines the children of each tab instead of calling them in the header function
+        # This also refreshes the children of each tab instead of calling them in the header function
+	# either way works, but this is faster
+	# first we get the latest timestamp for each sensorID
         maxTimestamps = sensorData.groupby('sensorID')['timestamp'].max().reset_index() 
+	# and we use that to get the row containing the latest data for each sensorID
         latestSensorData = pd.merge(sensorData, maxTimestamps, how='inner') 
+	# now we rebuild the content for each tab using the updated data
         hp = homepageDisplay(latestSensorData)
         tsg = SensorGraph(sensorData)
         itd = infoTableDisplay(sensorInfo)
         dlt = dataTableDisplay(sensorData)
+	# return all the chunks of content which are sent to each tab as per the Output specs
+	# in the callback bit above
         return(hp, tsg, itd, dlt, timeLastRefreshed)
 
+# finally, run the actual Dash web app
 if __name__ == '__main__':
     app.run_server(debug=True)
 
